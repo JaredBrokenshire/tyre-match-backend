@@ -3,4 +3,3 @@
 ### Added
 - Project initialised with flask server connected to MySQL database using docker-compose
 - Flask-Migrate and SQLAlchemy initialised for DB representation and migrations
-- Initial test route created with DB call
