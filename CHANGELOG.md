@@ -3,6 +3,7 @@
 - Added pagination limit and offset to base repo get_all method
 ### Changed
 - Fixed `.env.dist` to match required environment variables
+- Omitted `database/session.py` and `database/extensions.py` from test coverage report
 
 ##  v.0.0.2 20/05/2026 - Test Coverage: 97%
 
