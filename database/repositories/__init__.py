@@ -1,0 +1,1 @@
+from .tyre_model_repository import TyreModelRepository

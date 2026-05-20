@@ -1,0 +1,1 @@
+from .tyre_model_routes import tyre_model_blueprint

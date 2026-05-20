@@ -13,4 +13,7 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db, directory="database/migrations")
 
+    from api.routes import tyre_model_blueprint
+    app.register_blueprint(tyre_model_blueprint)
+
     return app

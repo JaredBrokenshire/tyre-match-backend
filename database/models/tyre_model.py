@@ -5,7 +5,6 @@ from sqlalchemy import Column, Integer, String, Float
 class TyreModel(Base):
     __tablename__ = 'tyre_models'
 
-
     # Basic identifiers
     id = Column(Integer, primary_key=True)
     manufacturer = Column(String(100), nullable=False)
