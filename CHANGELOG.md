@@ -1,4 +1,6 @@
 ## v0.0.3 `DATE` - Test Coverage: 
+### Added
+- Added pagination limit and offset to base repo get_all method
 ### Changed
 - Fixed `.env.dist` to match required environment variables
 

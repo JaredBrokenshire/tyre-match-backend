@@ -13,8 +13,13 @@ class BaseRepository(Generic[T]):
         self.db = db
         self.model = model
 
-    def get_all(self) -> List[T]:
-        return self.db.query(self.model).all()
+    def get_all(self, limit: int = 20, offset: int = 0) -> (List[T], int):
+        query = self.db.query(self.model).order_by(self.model.id).limit(limit).offset(offset)
+
+        items = query.all()
+        total = query.count()
+
+        return items, total
 
     def get_by_id(self, entity_id: int) -> Optional[T]:
         return self.db.query(self.model).filter(self.model.id == entity_id).first()

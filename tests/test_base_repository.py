@@ -43,16 +43,41 @@ def test_get_by_id(database_session):
 def test_get_all(database_session):
     repo = BaseRepository(database_session, TyreModel)
 
-    repo.create(manufacturer='Michelin', model_name='Test Tyre Model')
-    repo.create(manufacturer='Not Michelin', model_name='Different Model Name')
+    tyre_model_1 = repo.create(manufacturer='Michelin', model_name='Test Tyre Model')
+    tyre_model_2 = repo.create(manufacturer='Not Michelin', model_name='Different Model Name')
+    tyre_model_3 = repo.create(manufacturer='Pirelli', model_name='Third Model')
 
-    results = repo.get_all()
+    # Can get all results with no pagination
+    results, count = repo.get_all()
 
-    assert len(results) == 2
-    assert any(tyre_model.manufacturer == "Michelin" for tyre_model in results)
-    assert any(tyre_model.manufacturer == "Not Michelin" for tyre_model in results)
-    assert any(tyre_model.model_name == "Test Tyre Model" for tyre_model in results)
-    assert any(tyre_model.model_name == "Different Model Name" for tyre_model in results)
+    assert len(results) == 3
+    assert count == 3
+    assert results[0].id == tyre_model_1.id
+    assert results[1].id == tyre_model_2.id
+    assert results[2].id == tyre_model_3.id
+
+    # Can limit number of results returned with pagination
+    limit_results, count = repo.get_all(limit=2)
+
+    assert len(limit_results) == 2
+    assert count == 2
+    assert limit_results[0].id == tyre_model_1.id
+    assert limit_results[1].id == tyre_model_2.id
+
+    # Can offset start point of pagination
+    offset_results, count = repo.get_all(limit=2, offset=1)
+
+    assert len(offset_results) == 2
+    assert count == 2
+    assert offset_results[0].id == tyre_model_2.id
+    assert offset_results[1].id == tyre_model_3.id
+
+    # Can not return results with invalid offset
+    empty_results, count = repo.get_all(offset=10)
+
+    assert len(empty_results) == 0
+    assert count == 0
+
 
 def test_delete(database_session):
     repo = BaseRepository(database_session, TyreModel)
