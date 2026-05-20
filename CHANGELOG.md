@@ -1,4 +1,6 @@
 ## v0.0.3 `DATE` - Test Coverage: 
+### Changed
+- Fixed `.env.dist` to match required environment variables
 
 ##  v.0.0.2 20/05/2026 - Test Coverage: 97%
 
