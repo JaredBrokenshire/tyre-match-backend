@@ -1,7 +1,15 @@
-##  v.0.0.2 20/05/2026
+## v0.0.3 `DATE` - Test Coverage: 
+
+##  v.0.0.2 20/05/2026 - Test Coverage: 97%
 
 ### Added
-- Pytest functionality (with coverage reporting) using separate docker-compose for mock database
+- Added Pytest functionality (with coverage reporting) using separate docker-compose for mock database
+- Added generic base repository format with CRUD functions
+- Added tyre model repo inheriting from base repo
+- Added tyre model and subsequent database migration to create `tyre_models` table
+
+### Changed
+- Updated README to include project details and makefile commands
 
 ## v0.0.1 - 18/05/2026
 
