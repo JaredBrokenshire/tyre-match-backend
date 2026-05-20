@@ -76,3 +76,72 @@ def test_get_all_pagination(client, database_session):
     # Can correctly offset response
     assert data["data"][0]["manufacturer"] == "B"
     assert data["data"][1]["manufacturer"] == "C"
+
+def test_get_by_id_not_exist(client):
+    response = client.get("/tyre-models/test")
+
+    # Can not get tyre_model with invalid id
+    assert response.status_code == http.HTTPStatus.NOT_FOUND
+
+    response = client.get("/tyre-models/1")
+
+    # Can not get tyre_model with id that doesn't exist
+    assert response.status_code == http.HTTPStatus.NOT_FOUND
+    data = response.get_json()
+    # Can return appropriate error message
+    assert "error" in data
+    assert data["error"] == "TyreModel with id 1 not found"
+
+def test_get_by_id(client, database_session):
+    repo = TyreModelRepository()
+
+    tyre_model = repo.create(
+        manufacturer="Michelin",
+        model_name="Pilot Sport",
+        category="Sport",
+        vehicle_type="SUV",
+        width_mm=185,
+        aspect_ratio=55,
+        rim_diameter_inches=16,
+        groove_count=1,
+        pattern_type="Symmetric",
+        tread_pitch_length_mm=10,
+        dataset_source="google.com",
+        notes="This is a test"
+    )
+
+    response = client.get(f"/tyre-models/{tyre_model.id}")
+
+    # Can get tyre_model with valid id
+    assert response.status_code == http.HTTPStatus.OK
+    data = response.get_json()
+
+    # Can return all necessary fields
+    assert "id" in data
+    assert "manufacturer" in data
+    assert "model_name" in data
+    assert "category" in data
+    assert "vehicle_type" in data
+    assert "width_mm" in data
+    assert "aspect_ratio" in data
+    assert "rim_diameter_inches" in data
+    assert "groove_count" in data
+    assert "pattern_type" in data
+    assert "tread_pitch_length_mm" in data
+    assert "dataset_source" in data
+    assert "notes" in data
+    assert data["id"] == tyre_model.id
+    assert data["manufacturer"] == tyre_model.manufacturer
+    assert data["model_name"] == tyre_model.model_name
+    assert data["category"] == tyre_model.category
+    assert data["vehicle_type"] == tyre_model.vehicle_type
+    assert data["width_mm"] == tyre_model.width_mm
+    assert data["aspect_ratio"] == tyre_model.aspect_ratio
+    assert data["rim_diameter_inches"] == tyre_model.rim_diameter_inches
+    assert data["groove_count"] == tyre_model.groove_count
+    assert data["pattern_type"] == tyre_model.pattern_type
+    assert data["tread_pitch_length_mm"] == tyre_model.tread_pitch_length_mm
+    assert data["dataset_source"] == tyre_model.dataset_source
+    assert data["notes"] == tyre_model.notes
+
+

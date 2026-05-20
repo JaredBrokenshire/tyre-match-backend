@@ -1,2 +1,2 @@
-from .response_wrapper import paginated_response
+from .response_wrapper import paginated_response, error_response
 from .tyre_model_responses import slim_tyre_model_response, tyre_model_response
