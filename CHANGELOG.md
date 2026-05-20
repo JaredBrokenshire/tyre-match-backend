@@ -1,4 +1,6 @@
-## v0.0.3 `DATE` - Test Coverage: 
+## v0.0.4 `DATE` - Test Coverage: 
+
+## v0.0.3 20/05/2026 - Test Coverage: 100% 
 ### Added
 - Added pagination limit and offset to base repo get_all method
 - Added `get_all` route for `tyre_model` and response objects
