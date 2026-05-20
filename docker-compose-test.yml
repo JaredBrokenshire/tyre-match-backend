@@ -1,0 +1,39 @@
+name: tyre_match_test
+
+services:
+  tyre_match_test:
+    build:
+      context: .
+      dockerfile: docker/api/Dockerfile
+    container_name: pytest_runner
+    depends_on:
+      tyre_match_test_mysql:
+        condition: service_healthy
+    volumes:
+      - ./:/main
+    working_dir: /main
+    env_file: .env
+    environment:
+      FLASK_APP: main:create_app
+      PYTHONPATH: /main
+      TESTING: 1
+    command: sh -c "flask --app main:create_app db upgrade && pytest -vv -rA"
+
+  tyre_match_test_mysql:
+    image: mysql:8.0
+    container_name: test_database
+    restart: "no"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - ${TEST_EXPOSE_DB_PORT}:${DB_PORT}
+    tmpfs:
+      - /var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${DB_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20

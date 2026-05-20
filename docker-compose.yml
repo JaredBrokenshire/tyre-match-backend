@@ -1,19 +1,27 @@
+name: tyre_match_backend
+
 services:
   tyre_match_app:
     container_name: backend
-    build: .
+    build:
+      context: .
+      dockerfile: docker/api/Dockerfile
     ports:
       - ${EXPOSE_PORT}:${PORT}
     restart: always
     volumes:
-      - ./:/app/
+      - ./:/main/
     depends_on:
       tyre_match_mysql:
         condition: service_healthy
     env_file:
       - .env
+    environment:
+      FLASK_APP: main:create_app
+      TESTING: 0
     networks:
       - tyre_match-stack
+    command: sh -c "flask --app main:create_app db upgrade && python main.py"
 
   tyre_match_mysql:
     container_name: database
