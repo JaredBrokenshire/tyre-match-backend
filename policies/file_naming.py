@@ -4,7 +4,6 @@ from werkzeug.utils import secure_filename
 
 def uuid_filename(file) -> (str, str):
     id = uuid.uuid4()
-
     return id, f"{id}_{secure_filename(file.filename)}"
 
 

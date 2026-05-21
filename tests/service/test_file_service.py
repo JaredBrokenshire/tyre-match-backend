@@ -21,20 +21,17 @@ def test_save_file():
     file = MockFile("")
 
     # Can not save file with no file
-    with pytest.raises(ValueError) as exception:
+    with pytest.raises(ValueError, match="File cannot be empty"):
         file_service.save_file(None, "", [])
-    assert "File cannot be empty" in str(exception)
 
     # Can not save file with no filename
-    with pytest.raises(ValueError) as exception:
+    with pytest.raises(ValueError, match="File cannot be empty"):
         file_service.save_file(file, "", [])
-    assert "File cannot be empty" in str(exception)
 
     file = MockFile("test-file.txt")
     # Can not save file with invalid extension
-    with pytest.raises(ValueError) as exception:
+    with pytest.raises(ValueError, match="File type not allowed"):
         file_service.save_file(file, "", ["jpg"])
-    assert "File type not allowed" in str(exception)
 
     file = MockFile("test-file.jpg")
     response = file_service.save_file(file, "images", ["jpg"])

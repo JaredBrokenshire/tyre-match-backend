@@ -7,7 +7,3 @@ class TyreImpressionStatus(enum.Enum):
     processed = "processed"
     matched = "matched"
     failed = "failed"
-
-    @classmethod
-    def terminal_states(cls):
-        return {cls.processed, cls.matched, cls.failed}

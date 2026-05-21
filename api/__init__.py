@@ -19,7 +19,7 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db, directory="database/migrations")
 
-    from api.routes import tyre_model_blueprint
-    app.register_blueprint(tyre_model_blueprint)
+    from api.routes import register_blueprints
+    register_blueprints(app)
 
     return app

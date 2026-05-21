@@ -15,3 +15,6 @@ class TyreImpression(Base):
     status = Column(Enum(TyreImpressionStatus), default=TyreImpressionStatus.uploaded, nullable=False)
 
     created_at = Column(DateTime, default=datetime.now)
+
+    def __repr__(self):
+        return f"<TyreImpression {self.file_path} {self.status}>"
