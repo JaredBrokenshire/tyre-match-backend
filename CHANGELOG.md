@@ -4,6 +4,9 @@
 - Missed: 
 - Coverage: % 
 
+### Added
+- Created a tyre impression model with a status enum data type
+
 ## v0.0.4 21/05/2026
 ### Test Coverage
 - Statements: 109

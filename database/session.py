@@ -1,7 +1,7 @@
 import os
 from flask import g
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, DeclarativeBase, declarative_base
+from sqlalchemy.orm import sessionmaker, declarative_base
 
 env_variable = "DATABASE_URL"
 if os.getenv("TESTING") == "1":
