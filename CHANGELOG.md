@@ -13,6 +13,7 @@
 
 ### [Changed]
 - Changed styling on subheadings in changelog
+- Updated endpoints for consistency on plural/singular words
 
 ## v0.0.4 21/05/2026
 ### [Test Coverage]

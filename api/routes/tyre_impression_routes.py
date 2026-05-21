@@ -26,7 +26,7 @@ def get_all():
     )
     return jsonify(res)
 
-@tyre_impression_blueprint.route('/tyre-impression/upload', methods=['POST'])
+@tyre_impression_blueprint.route('/tyre-impressions/upload', methods=['POST'])
 def upload():
     repo = TyreImpressionRepository()
 

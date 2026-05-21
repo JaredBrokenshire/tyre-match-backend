@@ -89,7 +89,7 @@ def test_upload(client, database_session, monkeypatch):
 
     # Can not upload if there is an error from the file service
     response = client.post(
-        "/tyre-impression/upload",
+        "/tyre-impressions/upload",
         data={"file": (
             file.stream,
             file.filename,
@@ -107,7 +107,7 @@ def test_upload(client, database_session, monkeypatch):
     file = MockFile(filename="test.jpg")
 
     response = client.post(
-        "/tyre-impression/upload",
+        "/tyre-impressions/upload",
         data={"file": (
             file.stream,
             file.filename,
