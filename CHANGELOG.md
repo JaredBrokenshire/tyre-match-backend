@@ -10,6 +10,7 @@
 - Added a file service with file naming policies
 - Added get_all endpoint for tyre impressions
 - Added image upload endpoint for tyre impressions
+- Added custom exceptions
 
 ### [Changed]
 - Changed styling on subheadings in changelog
