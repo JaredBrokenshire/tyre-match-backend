@@ -1,8 +1,8 @@
 import http
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from database.repositories import TyreImpressionRepository
-from api.responses import tyre_impression_response, error_response, paginated_response
 from services.tyre_impression_service import TyreImpressionService
+from api.responses import tyre_impression_response, error_response, paginated_response
 
 tyre_impression_blueprint = Blueprint('tyre_impression', __name__)
 
@@ -34,6 +34,7 @@ def upload():
     try:
         tyre_impression = service.upload_impression_image(file)
     except Exception:
+        current_app.logger.exception("Failed to upload impression image")
         return error_response(http.HTTPStatus.BAD_REQUEST, f"Error uploading impression image")
 
     res = tyre_impression_response(tyre_impression)

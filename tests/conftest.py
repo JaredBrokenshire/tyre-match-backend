@@ -1,5 +1,6 @@
 import os
 import pytest
+import logging
 import sqlalchemy
 from main import create_app
 
@@ -27,11 +28,13 @@ def database_session(app):
     db.session.remove()
     db.session.bind = connection
 
-    connection.begin_nested()
+    nested = connection.begin_nested()
 
     @sqlalchemy.event.listens_for(db.session, "after_transaction_end")
-    def restart_savepoint(_, trans):
+    def restart_savepoint(session, trans):
         nonlocal nested
+
+        # only restart savepoint when the outer transaction ends
         if trans.nested and not trans._parent.nested:
             nested = connection.begin_nested()
 
@@ -47,3 +50,9 @@ def client(app):
     with app.test_client() as client:
         with app.app_context():
             yield client
+
+@pytest.fixture(autouse=True, scope="session")
+def disable_logging():
+    logging.disable(logging.CRITICAL)
+    yield
+    logging.disable(logging.NOTSET)

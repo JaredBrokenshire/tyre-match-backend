@@ -1,4 +1,5 @@
 import policies
+from flask import current_app
 from services import save_file
 from database.extensions import db
 from database.models import TyreImpression
@@ -24,10 +25,11 @@ class TyreImpressionService:
         try:
             path = save_file(
                 file,
-                "/files/images/tyre_impressions",
+                "/images/tyre_impressions",
                 ["png", "jpg", "jpeg", "webp"]
             )
         except ValueError as e:
+            current_app.logger.exception(e)
             raise FileSaveError(f"Error saving file: {str(e)}")
 
         with UnitOfWork(db.session):
@@ -39,4 +41,5 @@ class TyreImpressionService:
 
                 return tyre_impression
             except Exception as e:
+                current_app.logger.exception(e)
                 raise FileUploadError(f"Error uploading file: {str(e)}")

@@ -1,6 +1,13 @@
 import http
 import uuid
+from unittest.mock import patch
+
+from database.models.data_types import TyreImpressionStatus
+from tests.mocks.data import MockFile
+from services import TyreImpressionService
+from database.models import TyreImpression
 from database.repositories import TyreImpressionRepository
+from tests.mocks.services.mock_tyre_impression_service import MockTyreImpressionService
 
 
 def test_get_all(client, database_session):
@@ -72,4 +79,44 @@ def test_get_all_pagination(client, database_session):
     assert str(data["data"][0]["uuid"]) == str(tyre_impression_2.uuid)
 
 def test_upload(client, database_session, monkeypatch):
-    pass
+    # Can not upload if there is an error from the tyre impression service
+    with patch.object(TyreImpressionService, "upload_impression_image", side_effect=ValueError("test error")):
+        file = MockFile(filename="test.jpg")
+        response = client.post(
+            "/tyre-impressions/upload",
+            data={"file": (
+                file.stream,
+                file.filename,
+            )},
+            content_type="multipart/form-data",
+        )
+        # Ensure correct status code and error message are returned
+        assert response.status_code == http.HTTPStatus.BAD_REQUEST
+        assert "Error uploading impression image" == response.json["error"]
+
+    # Setup mock tyre impression service
+    mock_tyre_impression_service = MockTyreImpressionService()
+
+    # Can upload tyre impression image
+    mock_tyre_impression_service.upload_impression_image_response = TyreImpression(uuid="test-uuid", file_path="/test/file/path", status=TyreImpressionStatus.uploaded)
+
+    with patch.object(TyreImpressionService, "upload_impression_image", mock_tyre_impression_service.upload_impression_image):
+        file = MockFile(filename="test.jpg")
+        response = client.post(
+            "/tyre-impressions/upload",
+            data={"file": (
+                file.stream,
+                file.filename,
+            )},
+            content_type="multipart/form-data",
+        )
+        # Ensure tyre impression service was called with the correct parameters
+        assert 1 == len(mock_tyre_impression_service.upload_impression_image_calls)
+        assert file.filename == mock_tyre_impression_service.upload_impression_image_calls[0].filename
+        # Ensure correct status code is returned
+        assert response.status_code == http.HTTPStatus.CREATED
+        data = response.get_json()
+        assert "test-uuid" == data["uuid"]
+        assert "/test/file/path" == data["file_path"]
+        assert TyreImpressionStatus.uploaded.value == data["status"]
+

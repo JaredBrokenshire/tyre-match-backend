@@ -11,6 +11,7 @@ services:
     restart: always
     volumes:
       - ./:/main/
+      - file_storage:/files
     depends_on:
       tyre_match_mysql:
         condition: service_healthy
@@ -47,6 +48,7 @@ services:
 
 volumes:
   database_mysql:
+  file_storage:
 
 networks:
   tyre_match-stack:
