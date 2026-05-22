@@ -8,3 +8,7 @@ class InvalidFileTypeError(FileUploadError):
 
 class FileSaveError(FileUploadError):
     pass
+
+
+class DatabaseError(Exception):
+    pass

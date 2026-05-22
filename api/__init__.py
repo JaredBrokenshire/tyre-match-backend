@@ -1,3 +1,5 @@
+import logging
+
 from flask import Flask
 from flask_cors import CORS
 from database.session import DATABASE_URL
@@ -15,6 +17,7 @@ def create_app():
     app.config.from_mapping(
         SQLALCHEMY_DATABASE_URI = DATABASE_URL,
     )
+    app.logger.setLevel(logging.INFO)
 
     db.init_app(app)
     migrate.init_app(app, db, directory="database/migrations")

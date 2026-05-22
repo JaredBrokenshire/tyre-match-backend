@@ -1,7 +1,9 @@
 import http
-from flask import Blueprint, jsonify, request
 from database.repositories import TyreModelRepository
+from flask import Blueprint, jsonify, request, current_app
 from api.responses import paginated_response, slim_tyre_model_response, tyre_model_response, error_response
+from domain import DatabaseError
+from services import TyreModelService
 
 tyre_model_blueprint = Blueprint('tyre_model', __name__)
 
@@ -36,3 +38,16 @@ def get_by_id(id):
 
     res = tyre_model_response(tyre_model)
     return jsonify(res)
+
+@tyre_model_blueprint.route('/tyre-models', methods=['POST'])
+def create():
+    service = TyreModelService()
+
+    request_json = request.get_json()
+    try:
+        tyre_model = service.create(request_json)
+    except DatabaseError:
+        return error_response(http.HTTPStatus.INTERNAL_SERVER_ERROR, "Error creating tyre model record")
+
+    res = tyre_model_response(tyre_model)
+    return jsonify(res), http.HTTPStatus.CREATED

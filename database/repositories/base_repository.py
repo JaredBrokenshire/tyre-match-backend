@@ -1,7 +1,8 @@
 from sqlalchemy import or_
+from domain import DatabaseError
 from database.extensions import db
-from sqlalchemy.exc import IntegrityError
 from typing import TypeVar, Generic, Type, List, Optional
+
 
 T = TypeVar('T')
 
@@ -44,9 +45,9 @@ class BaseRepository(Generic[T]):
 
         try:
             self.db.flush()
-        except IntegrityError:
+        except DatabaseError as e:
             self.db.rollback()
-            raise
+            raise e
 
         return entity
 

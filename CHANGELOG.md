@@ -12,6 +12,8 @@
 - Added image upload endpoint for tyre impressions
 - Added custom exceptions
 - Added `TyreImpressionService` to handle upload image logic
+- Added `TyreModelService` to handle tyre model endpoint logic
+- Added create endpoint for tyre models
 
 ### [Changed]
 - Changed styling on subheadings in changelog
