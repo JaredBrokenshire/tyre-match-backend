@@ -20,6 +20,9 @@
 - Changed the working directory in docker-compose
 - Moved file service to a class object
 
+### [Removed]
+- Removed debug logs from tyre model service
+
 
 ## v0.0.5 22/05/2026
 ### [Test Coverage]

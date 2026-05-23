@@ -10,8 +10,6 @@ class TyreModelService:
         self.repo = TyreModelRepository()
 
     def create(self, dto):
-        current_app.logger.info(f"service layer: {dto}")
-
         with UnitOfWork(db.session):
             try:
                 tyre_model = self.repo.create(
@@ -28,7 +26,6 @@ class TyreModelService:
                     dataset_source=dto.get("dataset_source", None),
                     notes=dto.get("notes", None),
                 )
-                current_app.logger.info(f"tyre model (SERVICE): {tyre_model}")
             except DatabaseError as e:
                 current_app.logger.error(f"Error creating tyre_model record: {e}")
                 raise DatabaseError(f"Error creating tyre_model record: {e}")
