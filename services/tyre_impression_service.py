@@ -30,13 +30,13 @@ class TyreImpressionService:
                 ["png", "jpg", "jpeg", "webp"]
             )
         except InvalidFileTypeError as e:
-            current_app.logger.exception(f"Invalid file type error: {e}")
+            current_app.logger.error(f"Invalid file type error: {e}")
             raise FileSaveError(f"Error saving file: {str(e)}")
         except PermissionError as e:
-            current_app.logger.exception(f"Permission error: {e}")
+            current_app.logger.error(f"Permission error: {e}")
             raise FileSaveError(f"Error saving file: {str(e)}")
         except OSError as e:
-            current_app.logger.exception(f"OS error: {e}")
+            current_app.logger.error(f"OS error: {e}")
             raise FileSaveError(f"Error saving file: {str(e)}")
 
         with UnitOfWork(db.session):

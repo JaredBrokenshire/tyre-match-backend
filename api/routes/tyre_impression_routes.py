@@ -35,13 +35,13 @@ def upload():
     try:
         tyre_impression = service.upload_impression_image(file)
     except InvalidFileTypeError as e:
-        current_app.logger.exception(f"Invalid file type error: {e}")
+        current_app.logger.error(f"Invalid file type error: {e}")
         return error_response(http.HTTPStatus.BAD_REQUEST, "File type not supported")
     except FileSaveError as e:
-        current_app.logger.exception(f"File save error: {e}")
+        current_app.logger.error(f"File save error: {e}")
         return error_response(http.HTTPStatus.INTERNAL_SERVER_ERROR, "Error saving file to storage")
     except DatabaseError as e:
-        current_app.logger.exception(f"Database error: {e}")
+        current_app.logger.error(f"Database error: {e}")
         return error_response(http.HTTPStatus.INTERNAL_SERVER_ERROR, "Error uploading file to database")
 
     res = tyre_impression_response(tyre_impression)

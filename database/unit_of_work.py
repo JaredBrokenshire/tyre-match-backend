@@ -11,3 +11,5 @@ class UnitOfWork:
     def __exit__(self, exc_type, exc, tb):
         if exc_type:
             self.session.rollback()
+        else:
+            self.session.commit()

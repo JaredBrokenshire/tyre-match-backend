@@ -4,6 +4,9 @@
 - Missed: 
 - Coverage: %
 
+### [Added]
+- Added a mock base repository to prevent service tests from persisting data in the database
+
 ### [Changed]
 - Updated tyre impression upload route and tyre impression service to give more detailed logs and error outputs
 - Changed the working directory in docker-compose
