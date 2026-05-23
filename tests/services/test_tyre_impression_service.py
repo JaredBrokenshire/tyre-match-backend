@@ -9,7 +9,7 @@ from tests.mocks.database.repositories import MockBaseRepository
 from domain import InvalidFileTypeError, FileSaveError, DatabaseError
 
 
-def test_upload_impression_image(monkeypatch, database_session):
+def test_upload_impression_image(database_session):
     service = TyreImpressionService()
 
     # Setup mocks
@@ -25,7 +25,6 @@ def test_upload_impression_image(monkeypatch, database_session):
 
     with pytest.raises(InvalidFileTypeError, match="No filename provided"):
         service.upload_impression_image(no_name_file)
-
 
     # Can not upload if there is an invalid file type error from the file service
     mock_file_service.save_file_error = InvalidFileTypeError("invalid file type error")
@@ -62,8 +61,9 @@ def test_upload_impression_image(monkeypatch, database_session):
     file = MockFile(filename="test.jpg")
 
     with patch.object(TyreImpressionRepository, "create", new=mock_repo.create):
-        with pytest.raises(DatabaseError, match="Error uploading file: test repo error"):
-            service.upload_impression_image(file)
+        with patch.object(FileService, "save_file", mock_file_service.save_file):
+            with pytest.raises(DatabaseError, match="Error uploading file: test repo error"):
+                service.upload_impression_image(file)
 
     # Can upload valid image file
     mock_repo.reset()
