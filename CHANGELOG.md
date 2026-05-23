@@ -1,8 +1,16 @@
-## v0.0.6 `DATE`
+## v0.1.1 `DATE`
 ### [Test Coverage]
 - Statements: 
 - Missed: 
 - Coverage: %
+
+
+
+## v0.1.0 23/05/2026
+### [Test Coverage]
+- Statements: 314
+- Missed: 0
+- Coverage: 100%
 
 ### [Added]
 - Added a mock base repository to prevent service tests from persisting data in the database
