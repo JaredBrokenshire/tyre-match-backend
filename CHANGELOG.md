@@ -4,6 +4,11 @@
 - Missed: 
 - Coverage: %
 
+### [Changed]
+- Updated tyre impression upload route and tyre impression service to give more detailed logs and error outputs
+- Changed the working directory in docker-compose
+- Moved file service to a class object
+
 
 ## v0.0.5 22/05/2026
 ### [Test Coverage]

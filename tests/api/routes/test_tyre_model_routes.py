@@ -1,12 +1,9 @@
 import http
 from unittest.mock import patch
-
-import pytest
-
-from database.models import TyreModel
-from database.repositories import TyreModelRepository
 from domain import DatabaseError
+from database.models import TyreModel
 from services import TyreModelService
+from database.repositories import TyreModelRepository
 from tests.mocks.services import MockTyreModelService
 
 
@@ -221,6 +218,7 @@ def test_create(client):
                 "model_name": "Pilot Sport",
             }
         )
+
         # Ensure correct status code is returned
         assert response.status_code == http.HTTPStatus.CREATED
         # Ensure tyre model service was called correctly

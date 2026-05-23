@@ -1,7 +1,8 @@
 import http
+from services import TyreImpressionService
 from flask import Blueprint, request, jsonify, current_app
 from database.repositories import TyreImpressionRepository
-from services.tyre_impression_service import TyreImpressionService
+from domain import InvalidFileTypeError, FileSaveError, DatabaseError
 from api.responses import tyre_impression_response, error_response, paginated_response
 
 tyre_impression_blueprint = Blueprint('tyre_impression', __name__)
@@ -33,9 +34,15 @@ def upload():
     file = request.files['file']
     try:
         tyre_impression = service.upload_impression_image(file)
-    except Exception:
-        current_app.logger.exception("Failed to upload impression image")
-        return error_response(http.HTTPStatus.BAD_REQUEST, f"Error uploading impression image")
+    except InvalidFileTypeError as e:
+        current_app.logger.exception(f"Invalid file type error: {e}")
+        return error_response(http.HTTPStatus.BAD_REQUEST, "File type not supported")
+    except FileSaveError as e:
+        current_app.logger.exception(f"File save error: {e}")
+        return error_response(http.HTTPStatus.INTERNAL_SERVER_ERROR, "Error saving file to storage")
+    except DatabaseError as e:
+        current_app.logger.exception(f"Database error: {e}")
+        return error_response(http.HTTPStatus.INTERNAL_SERVER_ERROR, "Error uploading file to database")
 
     res = tyre_impression_response(tyre_impression)
     return jsonify(res), http.HTTPStatus.CREATED

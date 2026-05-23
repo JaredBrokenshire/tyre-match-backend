@@ -1,6 +1,6 @@
 FROM python:3.14
 
-WORKDIR /main
+WORKDIR /tyre_match
 
 COPY ../../requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

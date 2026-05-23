@@ -1,3 +1,4 @@
+from flask import current_app
 from sqlalchemy import or_
 from domain import DatabaseError
 from database.extensions import db
@@ -48,6 +49,7 @@ class BaseRepository(Generic[T]):
             self.db.flush()
         except IntegrityError as e:
             self.db.rollback()
+            current_app.logger.error(f"Error creating record in db: {e}")
             raise DatabaseError("Error inserting record into DB")
 
         return entity

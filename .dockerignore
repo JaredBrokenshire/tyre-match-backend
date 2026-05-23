@@ -1,6 +1,6 @@
 .git
 docker/deploy
 files/development
-files
+/files/**
 test-artifacts
 .coverage

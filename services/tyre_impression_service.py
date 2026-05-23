@@ -1,16 +1,17 @@
 import policies
 from flask import current_app
-from services import save_file
+from services import FileService
 from database.extensions import db
 from database.models import TyreImpression
 from database.unit_of_work import UnitOfWork
 from database.repositories import TyreImpressionRepository
-from domain import InvalidFileTypeError, FileSaveError, FileUploadError
+from domain import InvalidFileTypeError, FileSaveError, DatabaseError
 
 
 class TyreImpressionService:
     def __init__(self):
         self.repo = TyreImpressionRepository()
+        self.file_service = FileService()
 
     def upload_impression_image(self, file) -> TyreImpression:
         if not file:
@@ -23,13 +24,19 @@ class TyreImpressionService:
         file.filename = filename
 
         try:
-            path = save_file(
+            path = self.file_service.save_file(
                 file,
-                "/images/tyre_impressions",
+                "/tyre_match/files/tyre_impressions",
                 ["png", "jpg", "jpeg", "webp"]
             )
-        except ValueError as e:
-            current_app.logger.exception(e)
+        except InvalidFileTypeError as e:
+            current_app.logger.exception(f"Invalid file type error: {e}")
+            raise FileSaveError(f"Error saving file: {str(e)}")
+        except PermissionError as e:
+            current_app.logger.exception(f"Permission error: {e}")
+            raise FileSaveError(f"Error saving file: {str(e)}")
+        except OSError as e:
+            current_app.logger.exception(f"OS error: {e}")
             raise FileSaveError(f"Error saving file: {str(e)}")
 
         with UnitOfWork(db.session):
@@ -38,8 +45,8 @@ class TyreImpressionService:
                     uuid=uuid,
                     file_path=path,
                 )
-
-                return tyre_impression
-            except Exception as e:
+            except DatabaseError as e:
                 current_app.logger.exception(e)
-                raise FileUploadError(f"Error uploading file: {str(e)}")
+                raise DatabaseError(f"Error uploading file: {str(e)}")
+
+        return tyre_impression

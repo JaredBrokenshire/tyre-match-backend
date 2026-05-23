@@ -10,12 +10,12 @@ services:
       tyre_match_test_mysql:
         condition: service_healthy
     volumes:
-      - ./:/main
-    working_dir: /main
+      - ./:/tyre_match/
+    working_dir: /tyre_match
     env_file: .env
     environment:
       FLASK_APP: main:create_app
-      PYTHONPATH: /main
+      PYTHONPATH: /tyre_match
       TESTING: 1
     command: sh -c "flask --app main:create_app db upgrade && pytest -vv -rA"
 

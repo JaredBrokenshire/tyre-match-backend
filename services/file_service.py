@@ -1,36 +1,40 @@
 import os
 from flask import current_app
+from utils import allowed_file
+from domain import InvalidFileTypeError
 
-BASE_FILE_DIRECTORY = "/files"
+BASE_FILE_DIRECTORY = "/tyre_match/files"
 
-def allowed_file(filename: str, valid_extensions: list[str]) -> bool:
-    return "." in filename and filename.rsplit(".", 1)[1] in valid_extensions
+class FileService:
 
-def save_file(file, upload_dir: str, valid_extensions: list[str]) -> str:
-    if not file or file.filename == "":
-        current_app.logger.error("File cannot be empty")
-        raise ValueError("File cannot be empty")
+    def __init__(self):
+        self.base_directory = BASE_FILE_DIRECTORY
 
-    if not allowed_file(file.filename, valid_extensions):
-        current_app.logger.error("File extension must be one of {}".format(valid_extensions))
-        raise ValueError("File type not allowed")
+    def save_file(self, file, upload_dir: str, valid_extensions: list[str]) -> str:
+        if not file or file.filename == "":
+            current_app.logger.error("File cannot be empty")
+            raise InvalidFileTypeError("File cannot be empty")
 
-    dir_path = os.path.join(BASE_FILE_DIRECTORY, upload_dir)
+        if not allowed_file(file.filename, valid_extensions):
+            current_app.logger.error("File extension must be one of {}".format(valid_extensions))
+            raise InvalidFileTypeError("File type not allowed")
 
-    current_app.logger.info("Saving file: {}".format(dir_path))
+        dir_path = os.path.join(self.base_directory, upload_dir)
 
-    try:
-        os.makedirs(dir_path, exist_ok=True)
-    except PermissionError as e:
-        raise PermissionError(f"Permission denied creating directory {dir_path}") from e
-    except OSError as e:
-        raise OSError(f"Failed to create directory {dir_path}: {str(e)}") from e
+        current_app.logger.info("Saving file: {}".format(dir_path))
 
-    path = os.path.join(dir_path, file.filename)
+        try:
+            os.makedirs(dir_path, exist_ok=True)
+        except PermissionError as e:
+            raise PermissionError(f"Permission denied creating directory {dir_path}") from e
+        except OSError as e:
+            raise OSError(f"Failed to create directory {dir_path}: {str(e)}") from e
 
-    try:
-        file.save(path)
-    except OSError as e:
-        raise OSError(f"Failed to save file to {path}: {str(e)}") from e
+        path = os.path.join(dir_path, file.filename)
 
-    return path
+        try:
+            file.save(path)
+        except OSError as e:
+            raise OSError(f"Failed to save file to {path}: {str(e)}") from e
+
+        return path

@@ -9,10 +9,6 @@ class MockFileService:
 
         self.reset()
 
-    def allowed_file(self, filename: str) -> bool:
-        self.allowed_file_calls.append(filename)
-        return self.allowed_file_response
-
     def save_file(self, file, upload_dir: str, _: list[str]) -> str:
         self.save_file_calls.append((file.filename, upload_dir))
 

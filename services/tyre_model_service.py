@@ -24,7 +24,7 @@ class TyreModelService:
                 dataset_source=dto.get("dataset_source", None),
                 notes=dto.get("notes", None),
             )
-        except Exception as e:
+        except DatabaseError as e:
             current_app.logger.error(f"Error creating tyre_model record: {e}")
             raise DatabaseError(f"Error creating tyre_model record: {e}")
 

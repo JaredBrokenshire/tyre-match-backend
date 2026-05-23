@@ -10,7 +10,7 @@ services:
       - ${EXPOSE_PORT}:${PORT}
     restart: always
     volumes:
-      - ./:/main/
+      - ./:/tyre_match/
       - file_storage:/files
     depends_on:
       tyre_match_mysql:

@@ -1,11 +1,9 @@
 import http
-
-from database.models import TyreModel
+from domain import DatabaseError
+from services import TyreModelService
 from database.repositories import TyreModelRepository
 from flask import Blueprint, jsonify, request, current_app
 from api.responses import paginated_response, slim_tyre_model_response, tyre_model_response, error_response
-from domain import DatabaseError
-from services import TyreModelService
 
 tyre_model_blueprint = Blueprint('tyre_model', __name__)
 

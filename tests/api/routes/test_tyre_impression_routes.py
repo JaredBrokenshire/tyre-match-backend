@@ -2,10 +2,11 @@ import http
 import uuid
 from unittest.mock import patch
 from tests.mocks.data import MockFile
-from services import TyreImpressionService
 from database.models import TyreImpression
+from services import TyreImpressionService
 from database.repositories import TyreImpressionRepository
 from database.models.data_types import TyreImpressionStatus
+from domain import InvalidFileTypeError, FileSaveError, DatabaseError
 from tests.mocks.services.mock_tyre_impression_service import MockTyreImpressionService
 
 
@@ -81,8 +82,8 @@ def test_get_all_pagination(client, database_session):
 
 
 def test_upload(client, database_session, monkeypatch):
-    # Can not upload if there is an error from the tyre impression service
-    with patch.object(TyreImpressionService, "upload_impression_image", side_effect=ValueError("test error")):
+    # Can not upload if there is an invalid file type error from the tyre impression service
+    with patch.object(TyreImpressionService, "upload_impression_image", side_effect=InvalidFileTypeError("test error")):
         file = MockFile(filename="test.jpg")
         response = client.post(
             "/tyre-impressions/upload",
@@ -94,7 +95,39 @@ def test_upload(client, database_session, monkeypatch):
         )
         # Ensure correct status code and error message are returned
         assert response.status_code == http.HTTPStatus.BAD_REQUEST
-        assert "Error uploading impression image" == response.json["error"]
+        assert "File type not supported" == response.json["error"]
+
+    # Can not upload if there is a file save error from the tyre impression service
+    with patch.object(TyreImpressionService, "upload_impression_image",
+                      side_effect=FileSaveError("test error")):
+        file = MockFile(filename="test.jpg")
+        response = client.post(
+            "/tyre-impressions/upload",
+            data={"file": (
+                file.stream,
+                file.filename,
+            )},
+            content_type="multipart/form-data",
+        )
+        # Ensure correct status code and error message are returned
+        assert response.status_code == http.HTTPStatus.INTERNAL_SERVER_ERROR
+        assert "Error saving file to storage" == response.json["error"]
+
+    # Can not upload if there is a database error from the tyre impression service
+    with patch.object(TyreImpressionService, "upload_impression_image",
+                      side_effect=DatabaseError("test error")):
+        file = MockFile(filename="test.jpg")
+        response = client.post(
+            "/tyre-impressions/upload",
+            data={"file": (
+                file.stream,
+                file.filename,
+            )},
+            content_type="multipart/form-data",
+        )
+        # Ensure correct status code and error message are returned
+        assert response.status_code == http.HTTPStatus.INTERNAL_SERVER_ERROR
+        assert "Error uploading file to database" == response.json["error"]
 
     # Setup mock tyre impression service
     mock_tyre_impression_service = MockTyreImpressionService()
