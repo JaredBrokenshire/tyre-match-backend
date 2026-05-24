@@ -1,98 +1,157 @@
 import pytest
-from domain import DatabaseError
 from database.models import TyreModel
+from domain import DatabaseError, ModelNotFoundError
+from tests.helpers.factories import TyreModelFactory
 from database.repositories.base_repository import BaseRepository
 
 
-def test_create(app_ctx, database_session):
+def test_get_all_returns_models():
     repo = BaseRepository(TyreModel)
 
-    # Can not create entity with required fields missing
-    with pytest.raises(DatabaseError, match="Error inserting record into DB"):
-        repo.create()
+    tyre_model_1 = TyreModelFactory.create()
+    tyre_model_2 = TyreModelFactory.create()
+    tyre_model_3 = TyreModelFactory.create()
 
-    # Can create entity
-    tyre_model = repo.create(manufacturer='Michelin', model_name='Test Tyre Model')
-
-    assert tyre_model.manufacturer is not None
-    assert tyre_model.manufacturer == 'Michelin'
-    assert tyre_model.model_name is not None
-    assert tyre_model.model_name == 'Test Tyre Model'
-
-
-def test_get_all(app_ctx, database_session):
-    repo = BaseRepository(TyreModel)
-
-    tyre_model_1 = repo.create(manufacturer='Michelin', model_name='Test Tyre Model')
-    tyre_model_2 = repo.create(manufacturer='Not Michelin', model_name='Different Model Name')
-    tyre_model_3 = repo.create(manufacturer='Pirelli', model_name='Third Model')
-    tyre_model_4 = repo.create(manufacturer='New Manufacturer', model_name='Fourth Model')
-
-    # Can get all results with no pagination
     results, total_count = repo.get_all()
-
-    assert len(results) == 4
-    assert total_count == 4
-    assert results[0].id == tyre_model_1.id
-    assert results[1].id == tyre_model_2.id
-    assert results[2].id == tyre_model_3.id
-    assert results[3].id == tyre_model_4.id
-
-    # Can limit number of results returned with pagination
-    limit_results, total_count = repo.get_all(page_size=2)
-
-    assert len(limit_results) == 2
-    assert total_count == 4
-    assert limit_results[0].id == tyre_model_1.id
-    assert limit_results[1].id == tyre_model_2.id
-
-    # Can get page 2 of results
-    page_2_results, total_count = repo.get_all(page_size=2, page=2)
-
-    assert len(page_2_results) == 2
-    assert total_count == 4
-    assert page_2_results[0].id == tyre_model_3.id
-    assert page_2_results[1].id == tyre_model_4.id
-
-    # Can not return results with invalid offset
-    empty_results, total_count = repo.get_all(page=10)
-
-    assert len(empty_results) == 0
-    assert total_count == 4
+    # Ensure number of results is correct
+    assert 3 == len(results) == total_count
+    # Ensure correct models were returned
+    assert tyre_model_1.id == results[0].id
+    assert tyre_model_2.id == results[1].id
+    assert tyre_model_3.id == results[2].id
 
 
-def test_get_by_id(app_ctx, database_session):
+def test_get_all_pagination_page_1():
     repo = BaseRepository(TyreModel)
 
-    # Can get by ID
-    created = repo.create(manufacturer='Michelin', model_name='Test Tyre Model')
-    found = repo.get_by_id(created.id)
+    tyre_model_1 = TyreModelFactory.create()
+    tyre_model_2 = TyreModelFactory.create()
+    tyre_model_3 = TyreModelFactory.create()
 
-    assert found.id is not None
-    assert found.id == created.id
-    assert found.manufacturer == 'Michelin'
-    assert found.model_name == 'Test Tyre Model'
+    results, total_count = repo.get_all(page=1, page_size=1)
 
-    # Can not get by invalid ID
-    invalid_id = 999999
-
-    found = repo.get_by_id(invalid_id)
-
-    assert found is None
+    assert 1 == len(results)
+    assert 3 == total_count
+    assert tyre_model_1.id == results[0].id
+    assert tyre_model_2 not in results
+    assert tyre_model_3 not in results
 
 
-def test_delete(app_ctx, database_session):
+def test_get_all_pagination_page_2():
     repo = BaseRepository(TyreModel)
 
-    # Can delete model that exists
-    tyre_model = repo.create(manufacturer='Delete Me', model_name='Delete Me')
+    tyre_model_1 = TyreModelFactory.create()
+    tyre_model_2 = TyreModelFactory.create()
+    tyre_model_3 = TyreModelFactory.create()
 
-    result = repo.delete(tyre_model.id)
+    results, total_count = repo.get_all(page=2, page_size=1)
 
-    assert result is True
-    assert repo.get_by_id(tyre_model.id) is None
+    assert 1 == len(results)
+    assert 3 == total_count
+    assert tyre_model_2.id == results[0].id
+    assert tyre_model_1 not in results
+    assert tyre_model_3 not in results
 
-    # Can't delete model that doesn't exist
-    result = repo.delete(999999)
 
-    assert result is False
+def test_get_all_filtered():
+    repo = BaseRepository(TyreModel)
+
+    tyre_model_1 = TyreModelFactory.create(manufacturer="Test Manufacturer")
+    tyre_model_2 = TyreModelFactory.create()
+    tyre_model_3 = TyreModelFactory.create()
+
+    search_term = f"%Test%"
+
+    results, total_count = repo.get_all(filters=TyreModel.manufacturer.ilike(search_term))
+
+    assert 1 == len(results) == total_count
+    assert tyre_model_1.id == results[0].id
+    assert tyre_model_2 not in results
+    assert tyre_model_3 not in results
+
+
+def test_get_by_id_invalid_id():
+    repo = BaseRepository(TyreModel)
+
+    result = repo.get_by_id(1)
+    assert result is None
+
+
+def test_get_by_id():
+    repo = BaseRepository(TyreModel)
+
+    tyre_model_1 = TyreModelFactory.create()
+
+    result = repo.get_by_id(tyre_model_1.id)
+    assert tyre_model_1.manufacturer == result.manufacturer
+    assert tyre_model_1.model_name == result.model_name
+
+
+def test_create_missing_required_fields():
+    repo = BaseRepository(TyreModel)
+
+    tyre_model = {}
+
+    with pytest.raises(DatabaseError, match="Error inserting record into database: .* \"Column 'manufacturer' cannot be null\""):
+        repo.create(**tyre_model)
+
+
+def test_create():
+    repo = BaseRepository(TyreModel)
+
+    tyre_model = {
+        "manufacturer": "Test Manufacturer",
+        "model_name": "Test Model",
+    }
+
+    result = repo.create(**tyre_model)
+    assert result.id != 0
+    assert tyre_model["manufacturer"] == result.manufacturer
+    assert tyre_model["model_name"] == "Test Model"
+
+
+def test_update_invalid_data_type():
+    repo = BaseRepository(TyreModel)
+
+    tyre_model = TyreModelFactory.create()
+
+    updated_model = {
+        "width_mm": "This should be a number",
+    }
+
+    with pytest.raises(DatabaseError, match="Error updating record in database: .*Incorrect integer value: 'This should be a number' for column 'width_mm'"):
+        repo.update(tyre_model, **updated_model)
+
+
+def test_update():
+    repo = BaseRepository(TyreModel)
+
+    tyre_model = TyreModelFactory.create()
+
+    updated_model = {
+        "width_mm": 100,
+    }
+
+    result = repo.update(tyre_model, **updated_model)
+
+    assert tyre_model.id == result.id
+    assert 100 == result.width_mm
+
+
+def test_delete_invalid_id():
+    repo = BaseRepository(TyreModel)
+
+    with pytest.raises(ModelNotFoundError, match="Model with id 1 not found"):
+        repo.delete(1)
+
+
+def test_delete():
+    repo = BaseRepository(TyreModel)
+
+    tyre_model = TyreModelFactory.create()
+
+    res = repo.delete(tyre_model.id)
+
+    assert True == res
+    deleted_model = repo.get_by_id(tyre_model.id)
+    assert None == deleted_model

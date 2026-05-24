@@ -12,3 +12,7 @@ class FileSaveError(FileUploadError):
 
 class DatabaseError(Exception):
     pass
+
+
+class ModelNotFoundError(DatabaseError):
+    pass

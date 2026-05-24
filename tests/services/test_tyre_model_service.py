@@ -1,89 +1,191 @@
 import pytest
 from unittest.mock import patch
-from domain import DatabaseError
-from database.models import TyreModel
 from services import TyreModelService
+from domain import ModelNotFoundError, DatabaseError
+from tests.helpers.factories import TyreModelFactory
 from database.repositories import TyreModelRepository
-from tests.mocks.database.repositories import MockBaseRepository
+
+
+def test_get_all():
+    service = TyreModelService()
+
+    tyre_model_1 = TyreModelFactory().create()
+    tyre_model_2 = TyreModelFactory().create()
+    tyre_model_3 = TyreModelFactory().create()
+
+    results, total_count = service.get_all()
+
+    assert 3 == len(results) == total_count
+    assert tyre_model_1 in results
+    assert tyre_model_2 in results
+    assert tyre_model_3 in results
+
+
+def test_get_all_pagination_page_1():
+    service = TyreModelService()
+
+    tyre_model_1 = TyreModelFactory().create()
+    tyre_model_2 = TyreModelFactory().create()
+    tyre_model_3 = TyreModelFactory().create()
+
+    results, total_count = service.get_all(page=1, page_size=1)
+
+    assert 3 == total_count
+    assert 1 == len(results)
+    assert tyre_model_1 == results[0]
+    assert tyre_model_2 not in results
+    assert tyre_model_3 not in results
+
+
+def test_get_all_pagination_page_2():
+    service = TyreModelService()
+
+    tyre_model_1 = TyreModelFactory().create()
+    tyre_model_2 = TyreModelFactory().create()
+    tyre_model_3 = TyreModelFactory().create()
+
+    results, total_count = service.get_all(page=2, page_size=1)
+
+    assert 3 == total_count
+    assert 1 == len(results)
+    assert tyre_model_2 == results[0]
+    assert tyre_model_1 not in results
+    assert tyre_model_3 not in results
+
+
+def test_get_all_search_by_manufacturer():
+    service = TyreModelService()
+
+    tyre_model_1 = TyreModelFactory().create(manufacturer='Test Manufacturer')
+    tyre_model_2 = TyreModelFactory().create()
+    tyre_model_3 = TyreModelFactory().create()
+
+    results, total_count = service.get_all(search="Test")
+
+    assert 1 == len(results) == total_count
+    assert tyre_model_1 == results[0]
+    assert tyre_model_2 not in results
+    assert tyre_model_3 not in results
+
+
+def test_get_all_search_by_model_name():
+    service = TyreModelService()
+
+    tyre_model_1 = TyreModelFactory().create(model_name='Test Model Name')
+    tyre_model_2 = TyreModelFactory().create()
+    tyre_model_3 = TyreModelFactory().create()
+
+    results, total_count = service.get_all(search="Test")
+
+    assert 1 == len(results) == total_count
+    assert tyre_model_1 == results[0]
+    assert tyre_model_2 not in results
+    assert tyre_model_3 not in results
+
+
+def test_get_by_id_invalid_id():
+    service = TyreModelService()
+
+    with pytest.raises(ModelNotFoundError, match="Error getting tyre model by id: 1"):
+        service.get_by_id(1)
+
+
+def test_get_by_id():
+    service = TyreModelService()
+
+    tyre_model_1 = TyreModelFactory().create()
+    tyre_model_2 = TyreModelFactory().create()
+    tyre_model_3 = TyreModelFactory().create()
+
+    result = service.get_by_id(tyre_model_1.id)
+
+    assert tyre_model_1 == result
+    assert tyre_model_2 != result
+    assert tyre_model_3 != result
+
+
+def test_create_database_error_from_tyre_model_repository():
+    service = TyreModelService()
+
+    with patch.object(TyreModelRepository, 'create', side_effect=DatabaseError("test error")):
+        with pytest.raises(DatabaseError, match="Error creating tyre model record: test error"):
+            service.create({})
 
 
 def test_create():
     service = TyreModelService()
 
-    # Setup mock repository
-    mock_repo = MockBaseRepository()
-
-    # Can not create is there is an error from the repo
-    mock_repo.create_error = DatabaseError("test repo error")
-    with patch.object(TyreModelRepository, "create", new=mock_repo.create):
-        with pytest.raises(DatabaseError, match="Error creating tyre_model record: test repo error"):
-            service.create({
-                "manufacturer": "Michelin",
-                "model_name": "Pilot Sport"
-            })
-
-    # Can create tyre model
     dto = {
-        "manufacturer": "Michelin",
-        "model_name": "Pilot Sport",
-        "category": "All-Season",
-        "vehicle_type": "Passenger Car",
-        "width_mm": 205,
-        "aspect_ratio": 55,
-        "rim_diameter_inches": 16,
-        "groove_count": 3,
-        "pattern_type": "Symmetrical",
-        "tread_pitch_length_mm": 10,
-        "dataset_source": "Google",
-        "notes": "Test Notes"
+        "manufacturer": "Test Manufacturer",
+        "model_name": "Test Model Name",
     }
 
-    # Setup mock tyre model repository
-    mock_repo.reset()
-    mock_repo.create_response = TyreModel(
-        manufacturer=dto.get("manufacturer"),
-        model_name=dto.get("model_name"),
-        category=dto.get("category"),
-        vehicle_type=dto.get("vehicle_type"),
-        width_mm=dto.get("width_mm"),
-        aspect_ratio=dto.get("aspect_ratio"),
-        rim_diameter_inches=dto.get("rim_diameter_inches"),
-        groove_count=dto.get("groove_count"),
-        pattern_type=dto.get("pattern_type"),
-        tread_pitch_length_mm=dto.get("tread_pitch_length_mm"),
-        dataset_source=dto.get("dataset_source"),
-        notes=dto.get("notes"),
+    result = service.create(dto)
+    assert result is not None
+    assert result.id != 0
+    assert result.manufacturer == "Test Manufacturer"
+    assert result.model_name == "Test Model Name"
+
+
+def test_update_invalid_id():
+    service = TyreModelService()
+
+    with pytest.raises(ModelNotFoundError, match="Error getting tyre model by id: 1"):
+        service.get_by_id(1)
+
+
+def test_update_database_error_from_tyre_model_repository():
+    service = TyreModelService()
+
+    tyre_model = TyreModelFactory().create()
+
+    with patch.object(TyreModelRepository, 'update', side_effect=DatabaseError("test error")):
+        with pytest.raises(DatabaseError, match="Error updating tyre model record: test error"):
+            service.update(tyre_model.id, {})
+
+
+def test_update():
+    service = TyreModelService()
+
+    tyre_model = TyreModelFactory().create()
+
+    updated_model = service.update(
+        tyre_model.id,
+        {
+            "manufacturer": "Test Manufacturer",
+            "model_name": "Test Model Name",
+        }
     )
 
+    assert tyre_model.id == updated_model.id
+    assert "Test Manufacturer" == updated_model.manufacturer
+    assert "Test Model Name" == updated_model.model_name
 
-    with patch.object(TyreModelRepository, "create", new=mock_repo.create):
-        response = service.create(dto)
 
-        # Ensure repo was called correctly
-        assert 1 == len(mock_repo.create_calls)
-        assert dto.get("manufacturer") == mock_repo.create_calls[0].get("manufacturer")
-        assert dto.get("model_name") == mock_repo.create_calls[0].get("model_name")
-        assert dto.get("category") == mock_repo.create_calls[0].get("category")
-        assert dto.get("vehicle_type") == mock_repo.create_calls[0].get("vehicle_type")
-        assert dto.get("width_mm") == mock_repo.create_calls[0].get("width_mm")
-        assert dto.get("aspect_ratio") == mock_repo.create_calls[0].get("aspect_ratio")
-        assert dto.get("rim_diameter_inches") == mock_repo.create_calls[0].get("rim_diameter_inches")
-        assert dto.get("groove_count") == mock_repo.create_calls[0].get("groove_count")
-        assert dto.get("pattern_type") == mock_repo.create_calls[0].get("pattern_type")
-        assert dto.get("tread_pitch_length_mm") == mock_repo.create_calls[0].get("tread_pitch_length_mm")
-        assert dto.get("dataset_source") == mock_repo.create_calls[0].get("dataset_source")
-        assert dto.get("notes") == mock_repo.create_calls[0].get("notes")
+def test_delete_invalid_id():
+    service = TyreModelService()
 
-        # Ensure created model matches input
-        assert response.manufacturer == "Michelin"
-        assert response.model_name == "Pilot Sport"
-        assert response.category == "All-Season"
-        assert response.vehicle_type == "Passenger Car"
-        assert response.width_mm == 205
-        assert response.aspect_ratio == 55
-        assert response.rim_diameter_inches == 16
-        assert response.groove_count == 3
-        assert response.pattern_type == "Symmetrical"
-        assert response.tread_pitch_length_mm == 10
-        assert response.dataset_source == "Google"
-        assert response.notes == "Test Notes"
+    with pytest.raises(ModelNotFoundError, match="Tyre model with id 1 not found"):
+        result = service.delete(1)
+        assert result == False
+
+
+def test_delete_database_error_from_tyre_model_repository():
+    service = TyreModelService()
+
+    with patch.object(TyreModelRepository, 'delete', side_effect=DatabaseError("test error")):
+        with pytest.raises(DatabaseError, match="Error deleting tyre model record: test error"):
+            result = service.delete(1)
+            assert result == False
+
+
+def test_delete():
+    service = TyreModelService()
+
+    tyre_model = TyreModelFactory().create()
+
+    result = service.delete(tyre_model.id)
+
+    assert result == True
+    with pytest.raises(ModelNotFoundError, match=f"Error getting tyre model by id: {tyre_model.id}"):
+        service.get_by_id(tyre_model.id)

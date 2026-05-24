@@ -13,6 +13,9 @@ class TyreImpressionService:
         self.repo = TyreImpressionRepository()
         self.file_service = FileService()
 
+    def get_all(self, page=1, page_size=20) -> (list[TyreImpression], int):
+        return self.repo.get_all(page=page, page_size=page_size)
+
     def upload_impression_image(self, file) -> TyreImpression:
         if not file:
             raise InvalidFileTypeError("No file provided")
@@ -31,7 +34,7 @@ class TyreImpressionService:
             )
         except InvalidFileTypeError as e:
             current_app.logger.error(f"Invalid file type error: {e}")
-            raise FileSaveError(f"Error saving file: {str(e)}")
+            raise InvalidFileTypeError(f"Error saving file: {str(e)}")
         except PermissionError as e:
             current_app.logger.error(f"Permission error: {e}")
             raise FileSaveError(f"Error saving file: {str(e)}")

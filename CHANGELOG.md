@@ -6,14 +6,20 @@
 
 
 
-## v0.1.0 23/05/2026
+## v0.1.0 24/05/2026
 ### [Test Coverage]
-- Statements: 313
-- Missed: 0
-- Coverage: 100%
+- Statements: 417
+- Missed: 1
+- Coverage: 99%
+
+Reason for decrease: Missing statement is an if statement used as a flag for the testing environment in /database/unit_of_work.py 
 
 ### [Added]
 - Added a mock base repository to prevent service tests from persisting data in the database
+- Added update and delete endpoints for tyre models
+- Added model not found error exception
+- Added assertion helper methods for tests
+- Added model factories for tests
 
 ### [Changed]
 - Updated tyre impression upload route and tyre impression service to give more detailed logs and error outputs
@@ -21,6 +27,8 @@
 - Moved file service to a class object
 - Updated `dataset_source` and `notes` columns in `tyre_models` to be longtext
 - Updated lengths of varchar fields in `tyre_models` table
+- Refactored all tests to help with future debugging and maintainability
+- Moved search parameter out of base repo to keep it generic
 
 ### [Removed]
 - Removed debug logs from tyre model service
