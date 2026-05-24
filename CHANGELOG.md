@@ -4,6 +4,8 @@
 - Missed: 
 - Coverage: %
 
+### [Changed]
+- Updated project structure in readme
 
 
 ## v0.1.0 24/05/2026
