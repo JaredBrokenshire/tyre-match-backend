@@ -6,6 +6,8 @@
 
 ### [Changed]
 - Updated project structure in readme
+- Updated values in tyre impression status enum
+- Updated tyre impression and tyre model tests to use factories
 
 ### [Fixed]
 - Fixed tyre model service delete method to correctly use unit of work
