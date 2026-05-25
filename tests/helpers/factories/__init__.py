@@ -1,2 +1,3 @@
 from .tyre_model_factory import TyreModelFactory
 from .tyre_impression_factory import TyreImpressionFactory
+from .tyre_impression_processing_factory import TyreImpressionProcessingFactory

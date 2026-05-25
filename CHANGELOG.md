@@ -4,6 +4,9 @@
 - Missed: 
 - Coverage: %
 
+### [Added]
+- Created tyre impression image processing table
+
 ### [Changed]
 - Updated project structure in readme
 - Updated values in tyre impression status enum
