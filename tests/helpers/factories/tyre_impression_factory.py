@@ -14,7 +14,6 @@ class TyreImpressionFactory:
 
         defaults = {
             "uuid": f"{cls.counter}-uuid",
-            "file_path": f"{cls.counter}/file/path",
             "status": TyreImpressionStatus.uploaded,
             "created_at": datetime.now(),
         }

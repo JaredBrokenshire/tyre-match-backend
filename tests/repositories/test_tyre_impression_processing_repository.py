@@ -1,5 +1,5 @@
-from tests.helpers.factories import TyreImpressionFactory, TyreImpressionProcessingFactory
 from database.repositories import TyreImpressionProcessingRepository
+from tests.helpers.factories import TyreImpressionFactory, TyreImpressionProcessingFactory
 
 
 def test_get_by_tyre_impression_id_invalid_id(database_session):

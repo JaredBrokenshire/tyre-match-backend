@@ -1,12 +1,9 @@
-from random import random, randint
-from unittest.mock import patch
-
 import pytest
-
-from database.models.data_types import TyreImpressionStatus
-from database.repositories import TyreImpressionRepository, TyreImpressionProcessingRepository
+from unittest.mock import patch
 from domain import ModelNotFoundError, DatabaseError
-from preprocessing import TyreImpressionProcessingPipeline
+from pipelines import TyreImpressionProcessingPipeline
+from database.repositories import TyreImpressionRepository
+from database.models.data_types import TyreImpressionStatus
 from tests.helpers.factories import TyreImpressionFactory, TyreImpressionProcessingFactory
 from services.tyre_impression_processing_service import TyreImpressionProcessingService
 
@@ -77,118 +74,6 @@ def test_process_tyre_impression_error_from_pipeline():
             service.process_tyre_impression(tyre_impression.id)
 
 
-def test_process_tyre_impression_database_error_from_upsert_processing_record():
-    service = TyreImpressionProcessingService()
-
-    tyre_impression = TyreImpressionFactory().create()
-
-    mock_results = {
-        "normalised_path": f"/files/tyre_impressions/{tyre_impression.id}/normalised/test.jpg",
-        "enhanced_path": f"/files/tyre_impressions/{tyre_impression.id}/enhanced/test.jpg",
-        "binary_path": f"/files/tyre_impressions/{tyre_impression.id}/binary/test.jpg",
-        "clean_path": f"/files/tyre_impressions/{tyre_impression.id}/clean/test.jpg",
-        "skeleton_path": f"/files/tyre_impressions/{tyre_impression.id}/skeleton/test.jpg",
-        "features": {
-            "edge_density": random(),
-            "void_ratio": random(),
-            "groove_count": randint(1,10),
-        },
-        "pipeline_version": 1,
-    }
-
-    with patch.object(
-        TyreImpressionProcessingService,
-        "_upsert_processing_record",
-        side_effect=DatabaseError("test error")
-    ):
-        with patch.object(
-            TyreImpressionProcessingPipeline,
-            "process",
-            result=mock_results
-        ):
-            with pytest.raises(
-                DatabaseError,
-                match="Error upserting tyre impression processing record in processing service: test error"
-            ):
-                service.process_tyre_impression(tyre_impression.id)
-
-
-def test_process_tyre_impression_database_error_from_set_tyre_impression_status_processed():
-    service = TyreImpressionProcessingService()
-
-    tyre_impression = TyreImpressionFactory().create(
-        status=TyreImpressionStatus.processing,
-    )
-
-    mock_results = {
-        "normalised_path": f"/files/tyre_impressions/{tyre_impression.id}/normalised/test.jpg",
-        "enhanced_path": f"/files/tyre_impressions/{tyre_impression.id}/enhanced/test.jpg",
-        "binary_path": f"/files/tyre_impressions/{tyre_impression.id}/binary/test.jpg",
-        "clean_path": f"/files/tyre_impressions/{tyre_impression.id}/clean/test.jpg",
-        "skeleton_path": f"/files/tyre_impressions/{tyre_impression.id}/skeleton/test.jpg",
-        "features": {
-            "edge_density": random(),
-            "void_ratio": random(),
-            "groove_count": randint(1,10),
-        },
-        "pipeline_version": 1,
-    }
-
-    with patch.object(
-            TyreImpressionProcessingService,
-            "_set_tyre_impression_status",
-            side_effect=[
-                tyre_impression,
-                DatabaseError("test error")
-            ]  # List needed here to prevent _set_tyre_impression_status from raising an error the first time its invoked
-    ):
-        with patch.object(
-            TyreImpressionProcessingPipeline,
-            "process",
-            return_value=mock_results
-        ):
-            with pytest.raises(
-                    DatabaseError,
-                    match=f"Error setting tyre impression status `{TyreImpressionStatus.processed}` in processing service: test error"
-            ):
-                service.process_tyre_impression(tyre_impression.id)
-
-
-def test_process_tyre_impression():
-    service = TyreImpressionProcessingService()
-
-    tyre_impression = TyreImpressionFactory().create()
-
-    mock_results = {
-        "normalised_path": f"/files/tyre_impressions/{tyre_impression.id}/normalised/test.jpg",
-        "enhanced_path": f"/files/tyre_impressions/{tyre_impression.id}/enhanced/test.jpg",
-        "binary_path": f"/files/tyre_impressions/{tyre_impression.id}/binary/test.jpg",
-        "clean_path": f"/files/tyre_impressions/{tyre_impression.id}/clean/test.jpg",
-        "skeleton_path": f"/files/tyre_impressions/{tyre_impression.id}/skeleton/test.jpg",
-        "features": {
-            "edge_density": random(),
-            "void_ratio": random(),
-            "groove_count": randint(1,10),
-        },
-        "pipeline_version": 1,
-    }
-
-    with patch.object(TyreImpressionProcessingPipeline, "process", return_value=mock_results):
-        result = service.process_tyre_impression(tyre_impression.id)
-
-        assert result.id is not None
-        assert result.tyre_impression_id == tyre_impression.id
-        assert result.normalised_path == mock_results.get("normalised_path")
-        assert result.enhanced_path == mock_results.get("enhanced_path")
-        assert result.binary_path == mock_results.get("binary_path")
-        assert result.clean_path == mock_results.get("clean_path")
-        assert result.skeleton_path == mock_results.get("skeleton_path")
-        assert result.edge_density == mock_results.get("features").get("edge_density")
-        assert result.void_ratio == mock_results.get("features").get("void_ratio")
-        assert result.groove_count == mock_results.get("features").get("groove_count")
-        assert result.pipeline_version == mock_results.get("pipeline_version")
-
-
 def test_get_tyre_impression_invalid_id():
     service = TyreImpressionProcessingService()
 
@@ -225,70 +110,5 @@ def test_set_tyre_impression_status():
     assert result is not None
     assert result.id == tyre_impression.id
     assert result.status == TyreImpressionStatus.processing
-
-
-def test_upsert_processing_record_database_error_from_repo():
-    service = TyreImpressionProcessingService()
-
-    tyre_impression = TyreImpressionFactory().create()
-
-    with patch.object(TyreImpressionProcessingRepository, "update", side_effect=DatabaseError("test error")):
-        with pytest.raises(DatabaseError, match="Error upserting tyre impression processing: test error"):
-            service._upsert_processing_record(tyre_impression, {})
-
-
-def test_upsert_processing_record_not_exist():
-    service = TyreImpressionProcessingService()
-
-    tyre_impression = TyreImpressionFactory().create()
-
-    result = service._upsert_processing_record(tyre_impression, {
-        "normalised_path": f"/files/tyre_impressions/{tyre_impression.id}/normalised/test.jpg",
-        "enhanced_path": f"/files/tyre_impressions/{tyre_impression.id}/enhanced/test.jpg",
-        "binary_path": f"/files/tyre_impressions/{tyre_impression.id}/binary/test.jpg",
-        "clean_path": f"/files/tyre_impressions/{tyre_impression.id}/clean/test.jpg",
-        "skeleton_path": f"/files/tyre_impressions/{tyre_impression.id}/skeleton/test.jpg",
-        "features": {
-            "edge_density": random(),
-            "void_ratio": random(),
-            "groove_count": randint(1,10),
-        },
-        "pipeline_version": 1,
-    })
-
-    # Ensure only one tyre impression processing record was created
-    tyre_impression_processing_records, total_count = TyreImpressionProcessingRepository().get_all()
-    assert 1 == len(tyre_impression_processing_records)
-    assert 1 == total_count
-    assert result == tyre_impression_processing_records[0]
-    assert result.tyre_impression_id == tyre_impression.id
-
-
-def test_upsert_processing_record_existing_record():
-    service = TyreImpressionProcessingService()
-
-    tyre_impression = TyreImpressionFactory().create()
-    tyre_impression_processing = TyreImpressionProcessingFactory().create(tyre_impression.id)
-
-    result = service._upsert_processing_record(tyre_impression, {
-        "normalised_path": f"/files/tyre_impressions/{tyre_impression.id}/normalised/test.jpg",
-        "enhanced_path": f"/files/tyre_impressions/{tyre_impression.id}/enhanced/test.jpg",
-        "binary_path": f"/files/tyre_impressions/{tyre_impression.id}/binary/test.jpg",
-        "clean_path": f"/files/tyre_impressions/{tyre_impression.id}/clean/test.jpg",
-        "skeleton_path": f"/files/tyre_impressions/{tyre_impression.id}/skeleton/test.jpg",
-        "features": {
-            "edge_density": random(),
-            "void_ratio": random(),
-            "groove_count": randint(1,10),
-        }
-    })
-
-    # Ensure no new tyre impression processing records were created
-    tyre_impression_processing_records, total_count = TyreImpressionProcessingRepository().get_all()
-    assert 1 == len(tyre_impression_processing_records)
-    assert 1 == total_count
-    assert result == tyre_impression_processing_records[0]
-    assert tyre_impression_processing.id == result.id == tyre_impression_processing_records[0].id
-    assert result.tyre_impression_id == tyre_impression.id
 
 

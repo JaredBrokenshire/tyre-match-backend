@@ -2,6 +2,10 @@ class FileUploadError(Exception):
     pass
 
 
+class InvalidFileError(FileUploadError):
+    pass
+
+
 class InvalidFileTypeError(FileUploadError):
     pass
 

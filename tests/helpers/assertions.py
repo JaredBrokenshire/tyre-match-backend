@@ -85,8 +85,6 @@ def assert_tyre_impression_response(data: dict, tyre_impression: TyreImpression)
         assert tyre_impression.id == data["id"]
     if tyre_impression.uuid:
         assert tyre_impression.uuid == data["uuid"]
-    if tyre_impression.file_path:
-        assert tyre_impression.file_path == data["file_path"]
     if tyre_impression.status:
         assert tyre_impression.status.value == data["status"]
 

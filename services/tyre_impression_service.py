@@ -1,66 +1,86 @@
 import policies
 from flask import current_app
+from utils import validate_file
 from database.extensions import db
 from database.models import TyreImpression
 from database.unit_of_work import UnitOfWork
-from services.file_service import FileService
-from database.repositories import TyreImpressionRepository
-from domain import InvalidFileTypeError, FileSaveError, DatabaseError
-from services.tyre_impression_task_service import  TyreImpressionTaskService
+from tasks import process_tyre_impression_task
+from werkzeug.datastructures import FileStorage
+from database.models.data_types import FileType, FileModel
+from services.file_service import FileService, FileSaveRequest
+from domain import InvalidFileTypeError, FileSaveError, DatabaseError, InvalidFileError
+from database.repositories import TyreImpressionRepository, TyreImpressionProcessingRepository
 
 
 class TyreImpressionService:
     def __init__(self):
         self.tyre_impression_repository = TyreImpressionRepository()
+        self.tyre_impression_processing_repository = TyreImpressionProcessingRepository()
         self.file_service = FileService()
 
     def get_all(self, page=1, page_size=20) -> (list[TyreImpression], int):
         return self.tyre_impression_repository.get_all(page=page, page_size=page_size)
 
-    def upload_impression_image(self, file) -> TyreImpression:
+    def upload_impression_image(self, file: FileStorage) -> TyreImpression:
         if not file:
+            current_app.logger.error("No file provided in tyre impression service")
             raise InvalidFileTypeError("No file provided")
 
-        if not file.filename:
-            raise InvalidFileTypeError("No filename provided")
+        try:
+            validate_file(file, ["jpg", "jpeg", "png"])
+        except InvalidFileTypeError as e:
+            current_app.logger.error(f"Invalid file type error from validate_file in tyre impression service: {e}")
+            raise InvalidFileTypeError(f"Invalid file type error from validate_file in tyre impression service: {e}")
+        except InvalidFileError as e:
+            current_app.logger.error(f"Invalid file error from validate_file in tyre impression service: {e}")
+            raise InvalidFileTypeError(f"Invalid file error from validate_file in tyre impression service: {e}")
 
         uuid, filename = policies.uuid_filename(file)
         file.filename = filename
 
         with UnitOfWork(db.session):
             try:
-                tyre_impression = self.tyre_impression_repository.create(uuid=uuid, file_path="temp_file_path")
+                tyre_impression = self.tyre_impression_repository.create(uuid=uuid)
             except DatabaseError as e:
-                current_app.logger.exception(e)
-                raise DatabaseError(f"Error creating tyre impression record: {e}")
+                current_app.logger.exception(f"Error creating tyre impression record in tyre impression service: {e}")
+                raise DatabaseError(f"Error creating tyre impression record in tyre impression service: {e}")
 
             try:
-                path = self.file_service.save_file(
-                    file,
-                    f"/tyre_match/files/tyre_impressions/{tyre_impression.id}/raw",
-                    ["png", "jpg", "jpeg", "webp"]
+                tyre_impression_original_file = self.file_service.handle_file(
+                    FileSaveRequest(
+                        file=file,
+                        upload_directory=f"/tyre_match/files/tyre_impressions/{tyre_impression.id}/original",
+                        valid_extensions=["png", "jpg", "jpeg", "webp"],
+                        model=FileModel.tyre_model,
+                        model_id=tyre_impression.id,
+                        file_type=FileType.original
+                    )
                 )
+            except InvalidFileError as e:
+                current_app.logger.error(f"Invalid file error from file service in tyre impression service: {e}")
+                raise FileSaveError(f"Invalid file error from file service in tyre impression service: {e}")
             except InvalidFileTypeError as e:
-                current_app.logger.error(f"Invalid file type error: {e}")
-                raise InvalidFileTypeError(f"Error saving file: {e}")
-            except PermissionError as e:
-                current_app.logger.error(f"Permission error: {e}")
-                raise FileSaveError(f"Error saving file: {e}")
-            except OSError as e:
-                current_app.logger.error(f"OS error: {e}")
-                raise FileSaveError(f"Error saving file: {e}")
+                current_app.logger.error(f"Invalid file type error from file service in tyre impression service: {e}")
+                raise FileSaveError(f"Invalid file type error from file service in tyre impression service: {e}")
+            except (PermissionError, OSError) as e:
+                current_app.logger.error(f"Permission or OS error from file service in tyre impression service: {e}")
+                raise FileSaveError(f"Permission or OS error from file service in tyre impression service: {e}")
+            except DatabaseError as e:
+                current_app.logger.error(f"Database error from file service in tyre impression service: {e}")
+                raise FileSaveError(f"Database error from file service in tyre impression service: {e}")
 
             try:
-                tyre_impression = self.tyre_impression_repository.update(
-                    tyre_impression,
-                    uuid=uuid,
-                    file_path=path,
+                self.tyre_impression_processing_repository.create(
+                    tyre_impression_id=tyre_impression.id,
+                    original_file_id=tyre_impression_original_file.id
                 )
             except DatabaseError as e:
-                current_app.logger.exception(e)
-                raise DatabaseError(f"Error updating tyre impression record: {e}")
+                current_app.logger.exception(f"Error creating tyre impression processing record in tyre impression service: {e}")
+                raise DatabaseError(f"Error creating tyre impression processing record in tyre impression service: {e}")
+
+
 
         # Trigger async processing task
-        TyreImpressionTaskService.process(tyre_impression.id)
+        process_tyre_impression_task.delay(tyre_impression.id)
 
         return tyre_impression

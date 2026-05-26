@@ -1,4 +1,3 @@
-from datetime import datetime
 from random import random, randint
 from database.repositories import TyreImpressionProcessingRepository
 
@@ -14,12 +13,6 @@ class TyreImpressionProcessingFactory:
 
         defaults = {
             "tyre_impression_id": tyre_impression_id,
-
-            "normalised_path": f"/files/tyre_impressions/{tyre_impression_id}/normalised/test.jpg",
-            "enhanced_path": f"/files/tyre_impressions/{tyre_impression_id}/enhanced/test.jpg",
-            "binary_path": f"/files/tyre_impressions/{tyre_impression_id}/binary/test.jpg",
-            "clean_path": f"/files/tyre_impressions/{tyre_impression_id}/clean/test.jpg",
-            "skeleton_path": f"/files/tyre_impressions/{tyre_impression_id}/skeleton/test.jpg",
 
             "edge_density": random(),
             "void_ratio": random(),

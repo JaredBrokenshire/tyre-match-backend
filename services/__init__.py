@@ -1,4 +1,3 @@
 from .file_service import FileService
 from .tyre_model_service import TyreModelService
 from .tyre_impression_service import TyreImpressionService
-from .tyre_impression_task_service import TyreImpressionTaskService

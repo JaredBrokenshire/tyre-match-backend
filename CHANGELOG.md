@@ -1,8 +1,26 @@
-## v0.1.2 `DATE`
+## v0.1.3 `DATE`
 ### [Test Coverage]
 - Statements: 
-- Missed:
+- Missed: 
 - Coverage: %
+
+
+## v0.1.2 26/05/2026
+### [Test Coverage]
+- Statements: 635
+- Missed: 4
+- Coverage: 99%
+
+### [Added]
+- Created files table
+
+### [Changed]
+- Updated tyre impression model to reflect new relationship
+- Updated tyre impression processing model to reflect files changes
+
+### [Removed]
+- Removed the tyre impression task service
+- Removed tests/mocks to be more consistent with using patch methods
 
 ## v0.1.1 26/05/2026
 ### [Test Coverage]

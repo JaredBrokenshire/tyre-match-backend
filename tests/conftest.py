@@ -1,5 +1,6 @@
 import os
 import pytest
+import shutil
 import logging
 import sqlalchemy
 from main import create_app
@@ -56,3 +57,8 @@ def disable_logging():
     logging.disable(logging.CRITICAL)
     yield
     logging.disable(logging.NOTSET)
+
+@pytest.fixture(autouse=True)
+def cleanup():
+    yield
+    shutil.rmtree("/files/test_directory", ignore_errors=True)

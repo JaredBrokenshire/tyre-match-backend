@@ -1,3 +1,4 @@
+from .file import File
 from .tyre_model import TyreModel
 from .tyre_impression import TyreImpression
 from .tyre_impression_processing import TyreImpressionProcessing

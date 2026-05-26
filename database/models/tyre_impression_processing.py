@@ -2,7 +2,7 @@ from datetime import datetime
 from database.session import Base
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.mysql import LONGTEXT
-from sqlalchemy import Column, Integer, ForeignKey, String, Float, DateTime
+from sqlalchemy import Column, Integer, ForeignKey, Float, DateTime
 
 
 class TyreImpressionProcessing(Base):
@@ -16,11 +16,19 @@ class TyreImpressionProcessing(Base):
         unique=True
     )
 
-    normalised_path = Column(String(255), nullable=True)
-    enhanced_path = Column(String(255), nullable=True)
-    binary_path = Column(String(255), nullable=True)
-    clean_path = Column(String(255), nullable=True)
-    skeleton_path = Column(String(255), nullable=True)
+    original_file_id = Column(Integer, ForeignKey('files.id'), unique=True)
+    normalised_file_id = Column(Integer, ForeignKey('files.id'), unique=True)
+    enhanced_file_id = Column(Integer, ForeignKey('files.id'), unique=True)
+    binary_file_id = Column(Integer, ForeignKey('files.id'), unique=True)
+    clean_file_id = Column(Integer, ForeignKey('files.id'), unique=True)
+    skeleton_file_id = Column(Integer, ForeignKey('files.id'), unique=True)
+
+    original_file = relationship("File", foreign_keys="[TyreImpressionProcessing.original_file_id]")
+    normalised_file = relationship("File", foreign_keys="[TyreImpressionProcessing.normalised_file_id]")
+    enhanced_file = relationship("File", foreign_keys="[TyreImpressionProcessing.enhanced_file_id]")
+    binary_file = relationship("File", foreign_keys="[TyreImpressionProcessing.binary_file_id]")
+    clean_file = relationship("File", foreign_keys="[TyreImpressionProcessing.clean_file_id]")
+    skeleton_file = relationship("File", foreign_keys="[TyreImpressionProcessing.skeleton_file_id]")
 
     edge_density = Column(Float, nullable=True)
     void_ratio = Column(Float, nullable=True)

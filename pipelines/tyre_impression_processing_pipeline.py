@@ -2,5 +2,5 @@ class TyreImpressionProcessingPipeline:
     def __init__(self):
         pass
 
-    def process(self, file_path):
+    def process(self, processing_id: int):
         pass

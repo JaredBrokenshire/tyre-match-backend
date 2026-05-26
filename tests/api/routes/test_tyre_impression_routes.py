@@ -1,8 +1,8 @@
 import http
 from unittest.mock import patch
-from tests.mocks.data import MockFile
 from database.models import TyreImpression
 from services import TyreImpressionService
+from werkzeug.datastructures import FileStorage
 from tests.helpers.factories import TyreImpressionFactory
 from database.models.data_types import TyreImpressionStatus
 from domain import InvalidFileTypeError, DatabaseError, FileSaveError
@@ -93,7 +93,7 @@ def test_upload_no_file(client):
 
 
 def test_upload_no_filename(client):
-    file = MockFile(filename="")
+    file = FileStorage(filename="")
 
     response = client.post(
         "/tyre-impressions/upload",
@@ -108,7 +108,7 @@ def test_upload_no_filename(client):
 
 
 def test_upload_invalid_file_type_error_from_service(client):
-    file = MockFile(filename="test.jpg")
+    file = FileStorage(filename="test.jpg")
 
     with patch.object(TyreImpressionService, "upload_impression_image", side_effect=InvalidFileTypeError("test error")):
         response = client.post(
@@ -123,7 +123,7 @@ def test_upload_invalid_file_type_error_from_service(client):
 
 
 def test_upload_file_save_error_from_service(client):
-    file = MockFile(filename="test.jpg")
+    file = FileStorage(filename="test.jpg")
 
     with patch.object(TyreImpressionService, "upload_impression_image", side_effect=FileSaveError("test error")):
         response = client.post(
@@ -138,7 +138,7 @@ def test_upload_file_save_error_from_service(client):
 
 
 def test_upload_database_error_from_service(client):
-    file = MockFile(filename="test.jpg")
+    file = FileStorage(filename="test.jpg")
 
     with patch.object(TyreImpressionService, "upload_impression_image", side_effect=DatabaseError("test error")):
         response = client.post(
@@ -153,11 +153,10 @@ def test_upload_database_error_from_service(client):
 
 
 def test_upload(client):
-    file = MockFile(filename="test.jpg")
+    file = FileStorage(filename="test.jpg")
 
     mock_tyre_impression = TyreImpression(
         uuid="test-uuid",
-        file_path="/test/file/path",
         status=TyreImpressionStatus.uploaded
     )
 
