@@ -14,6 +14,8 @@ services:
     depends_on:
       tyre_match_mysql:
         condition: service_healthy
+      tyre_match_redis:
+        condition: service_started
     env_file:
       - .env
     environment:
@@ -44,6 +46,32 @@ services:
       timeout: 5s
       retries: 20
       start_period: 20s
+
+  tyre_match_redis:
+    container_name: redis
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - ${CELERY_EXPOSE_PORT}:${CELERY_PORT}
+    networks:
+      - tyre_match-stack
+
+  tyre_match_celery_worker:
+    container_name: celery_worker
+    build:
+      context: .
+      dockerfile: docker/api/Dockerfile
+    command: celery -A celery_app.celery worker --loglevel=info
+    restart: always
+    depends_on:
+      - tyre_match_redis
+      - tyre_match_mysql
+    env_file:
+      - .env
+    volumes:
+      - ./:/tyre_match/
+    networks:
+      - tyre_match-stack
 
 volumes:
   database_mysql:

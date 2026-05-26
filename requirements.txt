@@ -11,3 +11,5 @@ pytest~=9.0.3
 pytest-cov
 flask-cors~=6.0.2
 Werkzeug~=3.1.8
+celery~=5.6.3
+redis>=5.0

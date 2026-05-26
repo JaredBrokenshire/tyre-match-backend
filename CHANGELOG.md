@@ -7,6 +7,7 @@
 ### [Added]
 - Created tyre impression processing table
 - Created tyre impression processing service and repository
+- Added celery configuration for asynchronous task processing
 
 ### [Changed]
 - Updated project structure in readme

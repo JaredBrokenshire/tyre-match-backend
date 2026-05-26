@@ -79,6 +79,12 @@ EXPOSE_PORT=7788
 EXPOSE_DB_PORT=56740
 TEST_EXPOSE_DB_PORT=56741
 
+#Parameters for celery asynchronous worker
+CELERY_EXPOSE_PORT=6379
+CELERY_PORT=6379
+CELERY_BROKER_URL=redis://tyre_match_redis:6379/0
+CELERY_RESULT_BACKEND=redis://tyre_match_redis:6379/0
+
 # Flask configuration
 FLASK_APP=main.py
 ```
@@ -214,6 +220,7 @@ Manual execution:
 |── preprocessing/
 |    └── processors/
 |── services/
+|── tasks/
 |── test-artifacts/
 ├── tests/
 |    |── api/
