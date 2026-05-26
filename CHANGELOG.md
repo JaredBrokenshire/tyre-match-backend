@@ -8,11 +8,13 @@
 - Created tyre impression processing table
 - Created tyre impression processing service and repository
 - Added celery configuration for asynchronous task processing
+- Added tests for tyre impression processing repository
 
 ### [Changed]
 - Updated project structure in readme
 - Updated values in tyre impression status enum
 - Updated tyre impression and tyre model tests to use factories
+- Omitted celery_app.py from test coverage report
 
 ### [Fixed]
 - Fixed tyre model service delete method to correctly use unit of work
