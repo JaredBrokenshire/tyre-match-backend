@@ -1,8 +1,17 @@
-## v0.1.1 `DATE`
+## v0.1.2 `DATE`
 ### [Test Coverage]
 - Statements: 
-- Missed: 
+- Missed:
 - Coverage: %
+
+## v0.1.1 26/05/2026
+### [Test Coverage]
+- Statements: 529
+- Missed: 2
+- Coverage: 99%
+
+Reason for missed statement:
+- New missed statement is a "pass" on a method that has not been implemented yet
 
 ### [Added]
 - Created tyre impression processing table
