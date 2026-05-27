@@ -10,9 +10,9 @@ class TyreImpressionRepository(BaseRepository[TyreImpression]):
 
     def get_by_id(self, id_: int):
         return (
-            self.db.query(TyreImpression)
-            .options(joinedload(TyreImpression.processing))
-            .filter(TyreImpression.id == id_)
+            self.db.query(self.model)
+            .options(joinedload(self.model.processing))
+            .filter(self.model.id == id_)
             .first()
         )
 

@@ -4,8 +4,15 @@
 - Missed: 
 - Coverage: %
 
+### [Added]
+- Added new get by id method for tyre impression processing to fetch files
+- Created file factory for tests
+
 ### [Changed]
 - Override tyre impression repo get_by_id to include join for processing
+
+### [Removed]
+- Removed explicit relationship definition between tyre impression processing and files
 
 
 ## v0.1.2 26/05/2026

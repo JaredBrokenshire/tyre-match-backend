@@ -1,6 +1,8 @@
 from datetime import datetime
+from database.models import File
 from database.session import Base
 from sqlalchemy.orm import relationship
+from typing import Optional, Dict, ClassVar
 from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy import Column, Integer, ForeignKey, Float, DateTime
 
@@ -15,20 +17,6 @@ class TyreImpressionProcessing(Base):
         nullable=False,
         unique=True
     )
-
-    original_file_id = Column(Integer, ForeignKey('files.id'), unique=True)
-    normalised_file_id = Column(Integer, ForeignKey('files.id'), unique=True)
-    enhanced_file_id = Column(Integer, ForeignKey('files.id'), unique=True)
-    binary_file_id = Column(Integer, ForeignKey('files.id'), unique=True)
-    clean_file_id = Column(Integer, ForeignKey('files.id'), unique=True)
-    skeleton_file_id = Column(Integer, ForeignKey('files.id'), unique=True)
-
-    original_file = relationship("File", foreign_keys="[TyreImpressionProcessing.original_file_id]")
-    normalised_file = relationship("File", foreign_keys="[TyreImpressionProcessing.normalised_file_id]")
-    enhanced_file = relationship("File", foreign_keys="[TyreImpressionProcessing.enhanced_file_id]")
-    binary_file = relationship("File", foreign_keys="[TyreImpressionProcessing.binary_file_id]")
-    clean_file = relationship("File", foreign_keys="[TyreImpressionProcessing.clean_file_id]")
-    skeleton_file = relationship("File", foreign_keys="[TyreImpressionProcessing.skeleton_file_id]")
 
     edge_density = Column(Float, nullable=True)
     void_ratio = Column(Float, nullable=True)
@@ -47,6 +35,9 @@ class TyreImpressionProcessing(Base):
         uselist=False,
         single_parent=True,
     )
+
+    # Not table column, typing only
+    files: ClassVar[Optional[Dict[str, File]]] = None
 
     def __repr__(self):
         return f"<TyreImpressionProcessing {self.id} v{self.pipeline_version}>"

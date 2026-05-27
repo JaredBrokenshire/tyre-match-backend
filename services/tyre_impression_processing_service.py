@@ -43,7 +43,7 @@ class TyreImpressionProcessingService:
 
             # Run pipeline
             try:
-                self.pipeline.process(tyre_impression.id)
+                self.pipeline.process(tyre_impression.processing.id)
             except Exception as e:
                 current_app.logger.error(f"Error processing tyre impression: {e}")
                 raise e

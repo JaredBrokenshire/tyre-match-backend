@@ -46,13 +46,22 @@ class TyreImpressionService:
                 raise DatabaseError(f"Error creating tyre impression record in tyre impression service: {e}")
 
             try:
-                tyre_impression_original_file = self.file_service.handle_file(
+                tyre_impression_processing = self.tyre_impression_processing_repository.create(
+                    tyre_impression_id=tyre_impression.id,
+                )
+            except DatabaseError as e:
+                current_app.logger.exception(
+                    f"Error creating tyre impression processing record in tyre impression service: {e}")
+                raise DatabaseError(f"Error creating tyre impression processing record in tyre impression service: {e}")
+
+            try:
+                self.file_service.handle_file(
                     FileSaveRequest(
                         file=file,
-                        upload_directory=f"/tyre_match/files/tyre_impressions/{tyre_impression.id}/original",
+                        upload_directory=f"/tyre_match/files/tyre_impressions/{tyre_impression.id}/{FileType.original.value}",
                         valid_extensions=["png", "jpg", "jpeg", "webp"],
                         model=FileModel.tyre_model,
-                        model_id=tyre_impression.id,
+                        model_id=tyre_impression_processing.id,
                         file_type=FileType.original
                     )
                 )
@@ -69,18 +78,7 @@ class TyreImpressionService:
                 current_app.logger.error(f"Database error from file service in tyre impression service: {e}")
                 raise FileSaveError(f"Database error from file service in tyre impression service: {e}")
 
-            try:
-                self.tyre_impression_processing_repository.create(
-                    tyre_impression_id=tyre_impression.id,
-                    original_file_id=tyre_impression_original_file.id
-                )
-            except DatabaseError as e:
-                current_app.logger.exception(f"Error creating tyre impression processing record in tyre impression service: {e}")
-                raise DatabaseError(f"Error creating tyre impression processing record in tyre impression service: {e}")
-
-
-
         # Trigger async processing task
-        process_tyre_impression_task.delay(tyre_impression.id)
+        process_tyre_impression_task.delay(tyre_impression_processing.id)
 
         return tyre_impression

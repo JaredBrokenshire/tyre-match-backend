@@ -64,6 +64,7 @@ def test_process_tyre_impression_error_from_pipeline():
     service = TyreImpressionProcessingService()
 
     tyre_impression = TyreImpressionFactory().create()
+    TyreImpressionProcessingFactory().create(tyre_impression.id)
 
     with patch.object(
         TyreImpressionProcessingPipeline,
