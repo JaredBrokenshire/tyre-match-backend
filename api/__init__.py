@@ -1,7 +1,8 @@
+import os
 from flask import Flask
 from flask_cors import CORS
-from celery_app import init_celery
 from database.extensions import db, migrate
+from celery_config.config import init_celery
 from logging_config.config import setup_logging
 
 
@@ -16,6 +17,13 @@ def create_app():
     ])
 
     app.config.from_object("config.Config")
+    app.config.from_mapping(
+        CELERY=dict(
+            broker_url=os.getenv("CELERY_BROKER_URL"),
+            result_backend=os.getenv("CELERY_RESULT_BACKEND"),
+            task_ignore_result=True,
+        ),
+    )
 
     db.init_app(app)
     migrate.init_app(app, db, directory="database/migrations")

@@ -61,7 +61,7 @@ services:
     build:
       context: .
       dockerfile: docker/api/Dockerfile
-    command: celery -A celery_app.celery worker --loglevel=info
+    command: celery -A celery_config.make_celery worker --loglevel=info
     restart: always
     depends_on:
       - tyre_match_redis
