@@ -1,8 +1,18 @@
-## v0.1.3 `DATE`
+## v0.1.4 `DATE`
 ### [Test Coverage]
 - Statements: 
-- Missed: 
+- Missed:  
 - Coverage: %
+
+## v0.1.3 27/05/2026
+### [Test Coverage]
+- Statements: 768
+- Missed: 7
+- Coverage: 99%
+
+Reason for missed statements:
+- New missing statements are in celery worker config and not tested due to this being for asynchronous tasks
+- New missing statements are also in base processor, they are method declarations used for typing and have no content
 
 ### [Added]
 - Added new get by id method for tyre impression processing to fetch files
