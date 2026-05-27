@@ -1,5 +1,6 @@
 import os
 import logging
+import numpy as np
 from dataclasses import dataclass
 from database.models.file import File
 from werkzeug.datastructures import FileStorage
@@ -21,6 +22,16 @@ class FileSaveRequest:
     model: FileModel
     model_id: int
     file_type: FileType
+
+@dataclass
+class ProcessedImageRequest:
+    image: np.ndarray
+    file_name: str
+    upload_directory: str
+    model: FileModel
+    model_id: int
+    file_type: FileType
+    extension: str = "jpg"
 
 
 class FileService:
@@ -63,10 +74,47 @@ class FileService:
                 mime_type=file.mimetype,
             )
         except DatabaseError as e:
-            current_app.logger.error(f"Database error when creating file in file service: {e}")
+            logger.error(f"Database error when creating file in file service: {e}")
             raise DatabaseError(f"Database error when creating file in file service: {e}")
 
         return file
+
+    def save_processed_image(self, request: ProcessedImageRequest) -> File:
+        import cv2
+
+        directory_path = os.path.join(self.base_directory, request.upload_directory)
+
+        try:
+            make_directory(directory_path)
+        except PermissionError as e:
+            logger.error(f"PermissionError creating directory for processed image in file service: {e}")
+            raise PermissionError(f"PermissionError creating directory for processed image in file service: {e}")
+        except OSError as e:
+            logger.error(f"OSError creating directory for processed image in file service: {e}")
+            raise PermissionError(f"OSError creating directory for processed image in file service: {e}")
+
+        file_path = os.path.join(directory_path, request.file_name)
+
+        try:
+            cv2.imwrite(file_path, request.image)
+        except Exception as e:
+            logger.error(f"Error saving processed image in file service: {e}")
+            raise FileSaveError(f"Error saving processed image in file service: {e}")
+
+        try:
+            file_record = self.file_repository.create(
+                model=request.model,
+                model_id=request.model_id,
+                file_type=request.file_type,
+                file_name=request.file_name,
+                file_location=file_path,
+                mime_type="image/jpeg",
+            )
+        except DatabaseError as e:
+            logger.error(f"DatabaseError creating file for processed image in file service: {e}")
+            raise DatabaseError(f"DatabaseError creating file for processed image in file service: {e}")
+
+        return file_record
 
 
     def _save_file(self, file: FileStorage, location: str):

@@ -63,7 +63,7 @@ class TyreImpressionService:
                         file=file,
                         upload_directory=f"/tyre_match/files/tyre_impressions/{tyre_impression.id}/{FileType.original.value}",
                         valid_extensions=["png", "jpg", "jpeg", "webp"],
-                        model=FileModel.tyre_model,
+                        model=FileModel.tyre_impression,
                         model_id=tyre_impression_processing.id,
                         file_type=FileType.original
                     )

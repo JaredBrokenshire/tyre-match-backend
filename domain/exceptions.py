@@ -2,6 +2,10 @@ class FileUploadError(Exception):
     pass
 
 
+class FileReadError(Exception):
+    pass
+
+
 class InvalidFileError(FileUploadError):
     pass
 
@@ -19,4 +23,12 @@ class DatabaseError(Exception):
 
 
 class ModelNotFoundError(DatabaseError):
+    pass
+
+
+class ProcessorError(Exception):
+    pass
+
+
+class PipelineError(ProcessorError):
     pass

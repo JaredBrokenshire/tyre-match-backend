@@ -7,10 +7,16 @@
 ### [Added]
 - Added new get by id method for tyre impression processing to fetch files
 - Created file factory for tests
+- Added normalisation processor using Contrast Limited Adaptive Histogram Equalisation (CLAHE)
+- Setup preprocessing pipeline in asynchronous task
+- Added openCV dependencies to dockerfile
 
 ### [Changed]
 - Override tyre impression repo get_by_id to include join for processing
 - Changed logger from using flask app context to generic logger so it can be used by async tasks
+
+### [Fixed]
+- Fixed celery configuration and moved to `celery_config` directory
 
 ### [Removed]
 - Removed explicit relationship definition between tyre impression processing and files
