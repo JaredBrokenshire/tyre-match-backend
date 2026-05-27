@@ -4,6 +4,9 @@
 - Missed:  
 - Coverage: %
 
+### [Changed]
+- Updated README project structure
+
 ## v0.1.3 27/05/2026
 ### [Test Coverage]
 - Statements: 768
