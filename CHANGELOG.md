@@ -11,6 +11,7 @@
 
 ### [Changed]
 - Updated README project structure
+- Updated enhancement processor transform to allow for multiple stages of transformation
 
 ## v0.1.3 27/05/2026
 ### [Test Coverage]

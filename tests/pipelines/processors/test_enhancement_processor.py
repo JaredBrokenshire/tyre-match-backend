@@ -49,18 +49,50 @@ def test_process(context, processor):
                 assert result == "/files/test_directory/normalised"
 
 
-def test_transform_exception_from_clahe_apply(processor, context):
+def test_transform_processor_error_from_transform_step(processor, context):
+    mock_transform_step = MagicMock()
+    mock_transform_step.__name__ = "test_transform_step"
+    mock_transform_step.side_effect = ProcessorError("test error")
+
+    processor.transform_steps = [mock_transform_step]
+
+    image = np.zeros((10,10))
+
+    with pytest.raises(ProcessorError, match=r"ProcessorError from enhancement processor \(test_transform_step\): test error"):
+        processor.transform(image, context)
+
+
+def test_transform(processor, context):
+    mock_transform_step_1 = MagicMock()
+    mock_transform_step_1.return_value = np.full((10,10), 1)
+    mock_transform_step_2 = MagicMock()
+    mock_transform_step_2.return_value = np.full((10,10), 2)
+
+    processor.transform_steps = [mock_transform_step_1, mock_transform_step_2]
+
+    image = np.zeros((10,10))
+
+    result = processor.transform(image, context)
+
+    # Ensure final step result is returned
+    assert np.array_equal(result, mock_transform_step_2.return_value)
+    # Ensure all steps were called with the correct parameters
+    mock_transform_step_1.assert_called_once_with(image, context)
+    mock_transform_step_2.assert_called_once_with(mock_transform_step_1.return_value, context)
+
+
+def test_apply_clahe_exception_from_clahe_apply(processor, context):
     image = np.zeros((10, 10), np.uint8)
 
     mock_clahe = MagicMock()
     mock_clahe.apply.side_effect = Exception("test error")
 
     with patch("cv2.createCLAHE", return_value=mock_clahe):
-        with pytest.raises(ProcessorError, match="Exception from apply CLAHE in transform: test error"):
-            processor.transform(image, context)
+        with pytest.raises(ProcessorError, match="Error when applying CLAHE: test error"):
+            processor._apply_clahe(image, context)
 
 
-def test_transform_calls_clahe_with_correct_params(processor):
+def test_apply_clahe_calls_clahe_with_correct_params(processor):
     image = np.zeros((10, 10), dtype=np.uint8)
 
     context = {
@@ -72,7 +104,7 @@ def test_transform_calls_clahe_with_correct_params(processor):
     mock_clahe.apply.return_value = image
 
     with patch("cv2.createCLAHE", return_value=mock_clahe) as mock_create:
-        processor.transform(image, context)
+        processor._apply_clahe(image, context)
 
         mock_create.assert_called_once_with(
             clipLimit=3.5,
@@ -81,48 +113,48 @@ def test_transform_calls_clahe_with_correct_params(processor):
         mock_clahe.apply.assert_called_once()
 
 
-def test_transform_is_deterministic(context, processor):
+def test_apply_clahe_is_deterministic(context, processor):
     image = np.random.randint(0, 256, (100, 100), dtype=np.uint8)
 
-    result_1 = processor.transform(image, context)
-    result_2 = processor.transform(image, context)
+    result_1 = processor._apply_clahe(image, context)
+    result_2 = processor._apply_clahe(image, context)
 
     assert np.array_equal(result_1, result_2)
 
 
-def test_transform_changes_with_tile_grid_size(processor):
+def test_apply_clahe_changes_with_tile_grid_size(processor):
     image = np.full((200, 200), 120, dtype=np.uint8)
 
     small_tile_grid_size_context = {"clahe_clip_limit": 2.0, "clahe_tile_grid_size": (4, 4)}
     large_tile_grid_size_context = {"clahe_clip_limit": 2.0, "clahe_tile_grid_size": (16, 16)}
 
-    small_tile_grid_size_result = processor.transform(image, small_tile_grid_size_context)
-    large_tile_grid_size_result = processor.transform(image, large_tile_grid_size_context)
+    small_tile_grid_size_result = processor._apply_clahe(image, small_tile_grid_size_context)
+    large_tile_grid_size_result = processor._apply_clahe(image, large_tile_grid_size_context)
 
     assert not np.array_equal(small_tile_grid_size_result, large_tile_grid_size_result)
 
 
-def test_transform_changes_with_clip_limit(processor):
+def test_apply_clahe_changes_with_clip_limit(processor):
     image = np.full((200, 200), 120, dtype=np.uint8)
 
     low_clip_limit_context = {"clahe_clip_limit": 2.0, "clahe_tile_grid_size": (4, 4)}
     high_clip_limit_context = {"clahe_clip_limit": 4.0, "clahe_tile_grid_size": (4, 4)}
 
-    low_clip_limit_result = processor.transform(image, low_clip_limit_context)
-    high_clip_limit_result = processor.transform(image, high_clip_limit_context)
+    low_clip_limit_result = processor._apply_clahe(image, low_clip_limit_context)
+    high_clip_limit_result = processor._apply_clahe(image, high_clip_limit_context)
 
     assert not np.array_equal(low_clip_limit_result, high_clip_limit_result)
 
 
-def test_transform_contrast_preserved_in_flat_image(processor, context):
+def test_apply_clahe_contrast_preserved_in_flat_image(processor, context):
     image = np.full((100, 100), 100, dtype=np.uint8)
 
-    result = processor.transform(image, context)
+    result = processor._apply_clahe(image, context)
 
     assert 0.0 == result.std() == image.std()
 
 
-def test_transform_higher_clip_limit_increases_contrast_in_noisy_image(processor):
+def test_apply_clahe_higher_clip_limit_increases_contrast_in_noisy_image(processor):
     np.random.seed(0)
 
     noise = np.random.randint(0, 200, (100,100), dtype=np.uint8)
@@ -132,8 +164,8 @@ def test_transform_higher_clip_limit_increases_contrast_in_noisy_image(processor
     low_clip_limit_context = {"clahe_clip_limit": 1.0, "clahe_tile_grid_size": (4, 4)}
     high_clip_limit_context = {"clahe_clip_limit": 10.0, "clahe_tile_grid_size": (4, 4)}
 
-    high_clip_limit_result = processor.transform(image, high_clip_limit_context)
-    low_clip_limit_result = processor.transform(image, low_clip_limit_context)
+    high_clip_limit_result = processor._apply_clahe(image, high_clip_limit_context)
+    low_clip_limit_result = processor._apply_clahe(image, low_clip_limit_context)
 
     high_contrast = cv2.Laplacian(high_clip_limit_result, cv2.CV_64F).var()
     low_contrast = cv2.Laplacian(low_clip_limit_result, cv2.CV_64F).var()
@@ -141,30 +173,30 @@ def test_transform_higher_clip_limit_increases_contrast_in_noisy_image(processor
     assert high_contrast > low_contrast
 
 
-def test_transform_keeps_valid_pixel_range(context, processor):
+def test_apply_clahe_keeps_valid_pixel_range(context, processor):
     image = np.random.randint(0, 256, (100, 100), dtype=np.uint8)
 
-    result = processor.transform(image, context)
+    result = processor._apply_clahe(image, context)
 
     assert result.min() >= 0
     assert result.max() <= 255
 
 
-def test_transform_output_shape_and_data_type_matches_input(context, processor):
+def test_apply_clahe_output_shape_and_data_type_matches_input(context, processor):
     image = np.random.randint(0, 256, (100,100), dtype=np.uint8)
 
-    result = processor.transform(image, context)
+    result = processor._apply_clahe(image, context)
 
     assert isinstance(result, np.ndarray)
     assert result.shape == image.shape
     assert result.dtype == image.dtype
 
 
-def test_transform_preserves_structural_edges(context, processor):
+def test_apply_clahe_preserves_structural_edges(context, processor):
     image = np.zeros((100, 100), dtype=np.uint8)
     image[:, 50:] = 255  # sharp vertical edge
 
-    result = processor.transform(image, context)
+    result = processor._apply_clahe(image, context)
 
     input_edge = np.diff(image.mean(axis=0))
     output_edge = np.diff(result.mean(axis=0))
@@ -172,11 +204,11 @@ def test_transform_preserves_structural_edges(context, processor):
     assert np.argmax(input_edge) == np.argmax(output_edge)
 
 
-def test_transform_changes_histogram(context, processor):
+def test_apply_clahe_changes_histogram(context, processor):
     image = np.zeros((100,100), dtype=np.uint8)
     image[10:50, 10:50] = 128
 
-    result = processor.transform(image, context)
+    result = processor._apply_clahe(image, context)
 
     # Calculate histograms for input and output image
     input_image_histogram = cv2.calcHist([image], [0], None, [256], [0, 256])
@@ -186,18 +218,18 @@ def test_transform_changes_histogram(context, processor):
     assert np.linalg.norm(input_image_histogram - result_histogram) > 0
 
 
-def test_transform_stability_on_reapplication(context, processor):
+def test_apply_clahe_stability_on_reapplication(context, processor):
     image = np.random.randint(0, 256, (100, 100), dtype=np.uint8)
 
-    once = processor.transform(image, context)
-    twice = processor.transform(once, context)
+    once = processor._apply_clahe(image, context)
+    twice = processor._apply_clahe(once, context)
 
     # Not identical, but difference should be small
     diff = np.mean(np.abs(once.astype(np.int16) - twice.astype(np.int16)))
     assert diff < 1
 
 
-def test_transform_extreme_parameters(processor):
+def test_apply_clahe_extreme_parameters(processor):
     image = np.random.randint(0, 256, (10000, 10000), dtype=np.uint8)
 
     context = {
@@ -205,7 +237,7 @@ def test_transform_extreme_parameters(processor):
         "clahe_tile_grid_size": (1, 1),
     }
 
-    result = processor.transform(image, context)
+    result = processor._apply_clahe(image, context)
 
     assert result.shape == image.shape
     assert result.dtype == np.uint8
@@ -213,8 +245,8 @@ def test_transform_extreme_parameters(processor):
     assert result.max() <= 255
 
 
-def test_transform_requires_grayscale_image(processor, context):
+def test_apply_clahe_requires_grayscale_image(processor, context):
     colour_image = np.random.randint(0, 256, (10, 10, 3), dtype=np.uint8)
 
-    with pytest.raises(ProcessorError, match=r"Exception from apply CLAHE in transform:.*"):
-        processor.transform(colour_image, context)
+    with pytest.raises(ProcessorError, match=r"Error when applying CLAHE:.*"):
+        processor._apply_clahe(colour_image, context)
