@@ -4,8 +4,8 @@ from domain.exceptions import FileReadError, FileSaveError, ProcessorError
 
 logger = logging.getLogger(__name__)
 
-class NormalisationProcessor(BaseProcessor):
-    name = "normalisation"
+class EnhancementProcessor(BaseProcessor):
+    name = "enhancement"
 
     def process(self, input_path: str, context: dict) -> str:
         import cv2
@@ -29,9 +29,15 @@ class NormalisationProcessor(BaseProcessor):
     def transform(self, image, context: dict):
         import cv2
 
-        clip_limit = context["clahe_clip_limit"]
-        tile_grid_size = context["clahe_tile_grid_size"]
+        clip_limit = context.get("clahe_clip_limit", 2.0)
+        tile_grid_size = context.get("clahe_tile_grid_size", (4,4))
 
         clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=tile_grid_size)
 
-        return clahe.apply(image)
+        try:
+            result = clahe.apply(image)
+        except Exception as e:
+            logger.error(f"Exception from apply CLAHE in transform: {e}")
+            raise ProcessorError(f"Exception from apply CLAHE in transform: {e}") from e
+
+        return result

@@ -2,18 +2,18 @@ import os
 import logging
 from database.models.data_types.files import FileType
 from domain.exceptions import ProcessorError, PipelineError
-from pipelines.processors.normalisation import NormalisationProcessor
+from pipelines.processors.enhancement_processor import EnhancementProcessor
+from pipelines.processors.normalisation_processor import NormalisationProcessor
 from database.repositories.tyre_impression_processing_repository import TyreImpressionProcessingRepository
 
 logger = logging.getLogger(__name__)
 
-BASE_OUTPUT_DIRECTORY = "/tyre_match/tyre_impressions/"
 
 class TyreImpressionProcessingPipeline:
     def __init__(self):
         self.stages = [
             NormalisationProcessor(),
-            # ContrastProcessor(),
+            EnhancementProcessor(),
             # BinarisationProcessor(),
             # CleaningProcessor(),
             # SkeletonisationProcessor(),
@@ -24,12 +24,12 @@ class TyreImpressionProcessingPipeline:
             "processing_id": None,
 
             # Normalisation
-            "clahe_clip_limit": 2.5,
+            "clahe_clip_limit": 3.0,
             "clahe_tile_grid_size": (4,4),
 
             "file_types_on_completion": {
                 "normalisation": FileType.normalised,
-                "enhanced": FileType.enhanced,
+                "enhancement": FileType.enhanced,
                 "binary": FileType.binary,
                 "clean": FileType.clean,
                 "skeleton": FileType.skeleton,
@@ -62,7 +62,7 @@ class TyreImpressionProcessingPipeline:
         self.context["processing_id"] = tyre_impression_processing.id
         self.context["output_directories"] = {
                 "normalisation": f"{base_output_directory}/normalised",
-                "enhanced": f"{base_output_directory}/enhanced",
+                "enhancement": f"{base_output_directory}/enhanced",
                 "binary": f"{base_output_directory}/binary",
                 "clean": f"{base_output_directory}/clean",
                 "skeleton": f"{base_output_directory}/skeleton",

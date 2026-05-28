@@ -4,6 +4,11 @@
 - Missed:  
 - Coverage: %
 
+### [Added]
+- Added enhancement processor and moved CLAHE logic to there
+- Added placeholder normalisation processor
+- Added more extensive tests for enhancement processor, including deterministic assertions
+
 ### [Changed]
 - Updated README project structure
 
