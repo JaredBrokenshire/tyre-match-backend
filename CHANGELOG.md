@@ -12,6 +12,7 @@
 ### [Changed]
 - Updated README project structure
 - Updated enhancement processor transform to allow for multiple stages of transformation
+- Moved process and transform processor methods to base processor since they will need to be on all processors
 
 ## v0.1.3 27/05/2026
 ### [Test Coverage]

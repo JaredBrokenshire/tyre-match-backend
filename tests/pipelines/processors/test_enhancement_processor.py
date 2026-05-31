@@ -23,64 +23,6 @@ def context():
     }
 
 
-def test_process_no_image_read(context, processor):
-    with patch("cv2.imread", return_value=None):
-        with pytest.raises(FileReadError, match="Unable to read image in NormalisationProcessor"):
-            result = processor.process(input_path="/files/test_directory", context=context)
-            assert result is None
-
-
-def test_process_file_save_error_from_save_file(context, processor):
-    with patch("cv2.imread", return_value=np.ndarray((100, 100))):
-        with patch.object(EnhancementProcessor, "transform", return_value=np.ndarray((100, 100))):
-            with patch.object(EnhancementProcessor, "save_file", side_effect=FileSaveError("test error")):
-                with pytest.raises(ProcessorError, match="FileSaveError from enhancement processor"):
-                    result = processor.process(input_path="/files/test_directory", context=context)
-                    assert result is None
-
-
-def test_process(context, processor):
-    with patch("cv2.imread", return_value=np.ndarray((100, 100))):
-        with patch.object(EnhancementProcessor, "transform", return_value=np.ndarray((100, 100))):
-            with patch.object(EnhancementProcessor, "save_file", return_value="/files/test_directory/normalised"):
-                result = processor.process(input_path="/files/test_directory", context=context)
-
-                assert result is not None
-                assert result == "/files/test_directory/normalised"
-
-
-def test_transform_processor_error_from_transform_step(processor, context):
-    mock_transform_step = MagicMock()
-    mock_transform_step.__name__ = "test_transform_step"
-    mock_transform_step.side_effect = ProcessorError("test error")
-
-    processor.transform_steps = [mock_transform_step]
-
-    image = np.zeros((10,10))
-
-    with pytest.raises(ProcessorError, match=r"ProcessorError from enhancement processor \(test_transform_step\): test error"):
-        processor.transform(image, context)
-
-
-def test_transform(processor, context):
-    mock_transform_step_1 = MagicMock()
-    mock_transform_step_1.return_value = np.full((10,10), 1)
-    mock_transform_step_2 = MagicMock()
-    mock_transform_step_2.return_value = np.full((10,10), 2)
-
-    processor.transform_steps = [mock_transform_step_1, mock_transform_step_2]
-
-    image = np.zeros((10,10))
-
-    result = processor.transform(image, context)
-
-    # Ensure final step result is returned
-    assert np.array_equal(result, mock_transform_step_2.return_value)
-    # Ensure all steps were called with the correct parameters
-    mock_transform_step_1.assert_called_once_with(image, context)
-    mock_transform_step_2.assert_called_once_with(mock_transform_step_1.return_value, context)
-
-
 def test_apply_clahe_exception_from_clahe_apply(processor, context):
     image = np.zeros((10, 10), np.uint8)
 

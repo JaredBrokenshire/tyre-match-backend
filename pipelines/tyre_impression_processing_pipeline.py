@@ -3,7 +3,6 @@ import logging
 from database.models.data_types.files import FileType
 from domain.exceptions import ProcessorError, PipelineError
 from pipelines.processors.enhancement_processor import EnhancementProcessor
-from pipelines.processors.normalisation_processor import NormalisationProcessor
 from database.repositories.tyre_impression_processing_repository import TyreImpressionProcessingRepository
 
 logger = logging.getLogger(__name__)
@@ -12,7 +11,7 @@ logger = logging.getLogger(__name__)
 class TyreImpressionProcessingPipeline:
     def __init__(self):
         self.stages = [
-            NormalisationProcessor(),
+            # NormalisationProcessor(),
             EnhancementProcessor(),
             # BinarisationProcessor(),
             # CleaningProcessor(),
