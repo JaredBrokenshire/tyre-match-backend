@@ -115,20 +115,25 @@ def test_save_processed_image_database_error_from_file_repository(service, proce
             with pytest.raises(DatabaseError, match="DatabaseError creating file for processed image in file service: test error"):
                 service.save_processed_image(processed_image_request)
 
+def test_save_processed_image_no_file_record_created(service, processed_image_request):
+    with patch("cv2.imwrite"):
+        with patch.object(FileRepository, "create", return_value=None):
+            with pytest.raises(DatabaseError, match="DatabaseError creating file for processed image in file service"):
+                service.save_processed_image(processed_image_request)
+
 
 def test_save_processed_image(service, processed_image_request):
     with patch("cv2.imwrite"):
-        result = service.save_processed_image(processed_image_request)
+        service.save_processed_image(processed_image_request)
 
-        assert result is not None
-        # Ensure only one file db record was created
-        files, total_count = FileRepository().get_all()
-        assert 1 == len(files) == total_count
-        assert files[0] == result
-        assert result.file_location == f"{processed_image_request.upload_directory}/{processed_image_request.file_name}"
-        assert result.file_name == processed_image_request.file_name
-        assert result.model == processed_image_request.model
-        assert result.file_type == processed_image_request.file_type
+    # Ensure only one file db record was created
+    files, total_count = FileRepository().get_all()
+    assert 1 == len(files) == total_count
+    created = files[0]
+    assert created.file_location == f"{processed_image_request.upload_directory}/{processed_image_request.file_name}"
+    assert created.file_name == processed_image_request.file_name
+    assert created.model == processed_image_request.model
+    assert created.file_type == processed_image_request.file_type
 
 
 def test_save_file_permission_error_from_make_directory(service):

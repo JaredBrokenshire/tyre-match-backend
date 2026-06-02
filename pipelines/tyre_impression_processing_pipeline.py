@@ -1,4 +1,5 @@
 import os
+import cv2
 import logging
 from database.models.data_types.files import FileType
 from domain.exceptions import ProcessorError, PipelineError
@@ -22,7 +23,7 @@ class TyreImpressionProcessingPipeline:
             # General
             "processing_id": None,
 
-            # Normalisation
+            # Enhancement
             "clahe_clip_limit": 3.0,
             "clahe_tile_grid_size": (4,4),
 
@@ -50,11 +51,14 @@ class TyreImpressionProcessingPipeline:
             logger.error("TyreImpressionProcessing has no original image")
             raise PipelineError("TyreImpressionProcessing has no original image")
 
-        current_path = original_file.file_location
-        if not os.path.exists(current_path):
+        if not os.path.exists(original_file.file_location):
             logger.error("TyreImpressionProcessing original image location does not exist")
             raise PipelineError("TyreImpressionProcessing original image location does not exist")
 
+        image = cv2.imread(original_file.file_location, cv2.IMREAD_GRAYSCALE)
+        if image is None:
+            logger.error(f"Unable to read image in tyre impression processing pipeline")
+            raise PipelineError(f"Unable to read image in tyre impression processing pipeline")
 
         base_output_directory = f"/tyre_match/files/tyre_impressions/{tyre_impression_processing.tyre_impression_id}"
 
@@ -70,9 +74,9 @@ class TyreImpressionProcessingPipeline:
         for stage in self.stages:
             self.context["execution_trace"].append(stage.name)
             try:
-                current_path = stage.process(current_path, self.context)
+                image = stage.process(image, self.context)
             except ProcessorError as e:
                 logger.error(f"ProcessorError from {stage.name} processor: {e}")
                 raise PipelineError(f"ProcessorError from {stage.name} processor: {e}")
 
-        return current_path
+        return image

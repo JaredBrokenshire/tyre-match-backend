@@ -1,10 +1,11 @@
+import uuid
 import pytest
 import numpy as np
 from unittest.mock import MagicMock, patch
-from services.file_service import FileService
-from database.models.data_types.files import FileType
+from database.models.data_types.files import FileType, FileModel
 from pipelines.processors.base_processor import BaseProcessor
-from domain.exceptions import FileSaveError, DatabaseError, FileReadError, ProcessorError
+from services.file_service import FileService, ProcessedImageRequest
+from domain.exceptions import FileSaveError, DatabaseError, ProcessorError
 
 
 @pytest.fixture
@@ -19,37 +20,33 @@ def context():
 def processor():
     return BaseProcessor([])
 
-@pytest.fixture
-def mock_file_record():
-    mock_file_record = MagicMock()
-    mock_file_record.file_location = "/files/test_directory/test-file.jpg"
-    return mock_file_record
 
+def test_process_processor_error_from_transform(context, processor):
+    image = MagicMock()
 
-def test_process_no_image_read(context, processor):
-    with patch("cv2.imread", return_value=None):
-        with pytest.raises(FileReadError, match="Unable to read image in base processor"):
-            result = processor.process(input_path="/files/test_directory", context=context)
-            assert result is None
+    with patch.object(processor, "transform", side_effect=ProcessorError("test error")):
+        with pytest.raises(ProcessorError, match="ProcessorError when transforming image in base processor: test error"):
+            processor.process(image, context)
 
 
 def test_process_file_save_error_from_save_file(context, processor):
-    with patch("cv2.imread", return_value=np.ndarray((100, 100))):
-        with patch.object(processor, "transform", return_value=np.ndarray((100, 100))):
-            with patch.object(processor, "save_file", side_effect=FileSaveError("test error")):
-                with pytest.raises(ProcessorError, match="FileSaveError from base processor"):
-                    result = processor.process(input_path="/files/test_directory", context=context)
-                    assert result is None
+    image = MagicMock()
+
+    with patch.object(processor, "transform", return_value=np.ndarray((100, 100))):
+        with patch.object(processor, "save_file", side_effect=FileSaveError("test error")):
+            with pytest.raises(ProcessorError, match="FileSaveError from base processor"):
+                result = processor.process(image=image, context=context)
+                assert result is None
 
 
 def test_process(context, processor):
-    with patch("cv2.imread", return_value=np.ndarray((100, 100))):
-        with patch.object(processor, "transform", return_value=np.ndarray((100, 100))):
-            with patch.object(processor, "save_file", return_value="/files/test_directory/normalised"):
-                result = processor.process(input_path="/files/test_directory", context=context)
+    image = np.zeros((10,10))
 
-                assert result is not None
-                assert result == "/files/test_directory/normalised"
+    with patch.object(processor, "transform", return_value=image):
+        with patch.object(processor, "save_file"):
+            result = processor.process(image=image, context=context)
+
+            assert np.array_equal(result, image)
 
 
 def test_transform_processor_error_from_transform_step(processor, context):
@@ -84,38 +81,58 @@ def test_transform(processor, context):
     mock_transform_step_2.assert_called_once_with(mock_transform_step_1.return_value, context)
 
 
-def test_save_file_permission_error_from_file_service(context, processor, mock_file_record):
+def test_save_file_permission_error_from_file_service(context, processor):
      with patch.object(FileService, "save_processed_image", side_effect=PermissionError("test error")):
         with pytest.raises(FileSaveError, match="PermissionError from file service in stage1 processor: test error"):
             result = processor.save_file(image="mock_image", context=context, stage_name="stage1")
             assert result is None
 
 
-def test_save_file_os_error_from_file_service(context, processor, mock_file_record):
+def test_save_file_os_error_from_file_service(context, processor):
     with patch.object(FileService, "save_processed_image", side_effect=OSError("test error")):
         with pytest.raises(FileSaveError, match="OSError from file service in stage1 processor: test error"):
             result = processor.save_file(image="mock_image", context=context, stage_name="stage1")
             assert result is None
 
 
-def test_save_file_file_save_error_from_file_service(context, processor, mock_file_record):
+def test_save_file_file_save_error_from_file_service(context, processor):
     with patch.object(FileService, "save_processed_image", side_effect=FileSaveError("test error")):
         with pytest.raises(FileSaveError, match="FileSaveError from file service in stage1 processor: test error"):
             result = processor.save_file(image="mock_image", context=context, stage_name="stage1")
             assert result is None
 
 
-def test_save_file_database_error_from_file_service(context, processor, mock_file_record):
+def test_save_file_database_error_from_file_service(context, processor):
     with patch.object(FileService, "save_processed_image", side_effect=DatabaseError("test error")):
         with pytest.raises(FileSaveError, match="DatabaseError from file service in stage1 processor: test error"):
             result = processor.save_file(image="mock_image", context=context, stage_name="stage1")
             assert result is None
 
 
-def test_save_file(context, processor, mock_file_record):
-    with patch.object(FileService, "save_processed_image", return_value=mock_file_record):
-        result = processor.save_file(image="mock_image", context=context, stage_name="stage1")
+def test_save_file(context, processor):
+    mock_file_service = MagicMock()
 
-        assert result is not None
-        assert result == mock_file_record.file_location
+    with patch.object(FileService, "save_processed_image", new=mock_file_service.save_processed_image):
+        processor.save_file(image="mock_image", context=context, stage_name="stage1")
+
+    mock_file_service.save_processed_image.assert_called_once()
+
+    request = mock_file_service.save_processed_image.call_args.args[0]
+
+    assert isinstance(request, ProcessedImageRequest)
+    assert request.image == "mock_image"
+    assert request.upload_directory == context["output_directories"]["stage1"]
+    assert request.model == FileModel.tyre_impression
+    assert request.model_id == context["processing_id"]
+    assert request.file_type == context["file_types_on_completion"]["stage1"]
+    assert request.extension == "png"
+
+    # Validate generated filename
+    assert request.file_name.endswith(".png")
+
+    # Validate UUID filename
+    uuid_part = request.file_name.removesuffix(".png")
+    uuid.UUID(uuid_part)
+
+
 

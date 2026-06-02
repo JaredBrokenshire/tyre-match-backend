@@ -13,6 +13,8 @@
 - Updated README project structure
 - Updated enhancement processor transform to allow for multiple stages of transformation
 - Moved process and transform processor methods to base processor since they will need to be on all processors
+- Updated return types in processing pipeline to reduce IO Read/Write operations
+- Changed the tyre impression processed image extensions from jpg to png to reduce cumulative compression artifacts
 
 ## v0.1.3 27/05/2026
 ### [Test Coverage]

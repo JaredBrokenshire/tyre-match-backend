@@ -31,7 +31,7 @@ class ProcessedImageRequest:
     model: FileModel
     model_id: int
     file_type: FileType
-    extension: str = "jpg"
+    extension: str = "png"
 
 
 class FileService:
@@ -79,7 +79,7 @@ class FileService:
 
         return file
 
-    def save_processed_image(self, request: ProcessedImageRequest) -> File:
+    def save_processed_image(self, request: ProcessedImageRequest):
         import cv2
 
         directory_path = os.path.join(self.base_directory, request.upload_directory)
@@ -114,7 +114,9 @@ class FileService:
             logger.error(f"DatabaseError creating file for processed image in file service: {e}")
             raise DatabaseError(f"DatabaseError creating file for processed image in file service: {e}")
 
-        return file_record
+        if file_record is None:
+            logger.error("DatabaseError creating file for processed image in file service")
+            raise DatabaseError(f"DatabaseError creating file for processed image in file service")
 
 
     def _save_file(self, file: FileStorage, location: str):

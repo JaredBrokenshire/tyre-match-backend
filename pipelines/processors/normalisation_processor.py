@@ -7,9 +7,9 @@ logger = logging.getLogger(__name__)
 class NormalisationProcessor(BaseProcessor):
     name = "normalisation"
 
-    def process(self, input_path: str, context: dict) -> str:
-        return input_path
-
-
-    def transform(self, image, context: dict) -> str:
-        pass
+    def __init__(self):
+        super().__init__(
+            transform_steps=[
+                # TODO: Write normalisation steps
+            ]
+        )
