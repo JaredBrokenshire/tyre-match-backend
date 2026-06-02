@@ -30,8 +30,14 @@ class TyreImpressionProcessingPipeline:
             "skew_anisotropy_threshold": 2.5,
 
             # Enhancement
+            "denoise_h": 10,
+            "denoise_template_window_size": 7,
+            "denoise_search_window_size": 12,
             "clahe_clip_limit": 3.0,
             "clahe_tile_grid_size": (4,4),
+            "sharpen_strength": 1.2,
+            "sharpen_blur_kernel_size": (0,0),
+            "sharpen_sigma": 1.0,
 
             "file_types_on_completion": {
                 "normalisation": FileType.normalised,

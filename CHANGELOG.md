@@ -10,6 +10,7 @@
 - Added correct skew method to normalisation processor to rotate image relative to strong lines detected by OTSU masking and calculation a principal axis using eigen values
 - Added enhancement processor and moved CLAHE logic to there
 - Added more extensive tests for enhancement processor, including deterministic assertions
+- Added denoise and sharpen methods to the enhancement processor
 
 ### [Changed]
 - Updated README project structure

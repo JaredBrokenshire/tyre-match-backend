@@ -19,7 +19,7 @@ class NormalisationProcessor(BaseProcessor):
         )
 
 
-    def _resize(self, image, context: dict):
+    def _resize(self, image, context: dict) -> np.ndarray:
         target_width = context.get("target_width", 4096)
         target_height = context.get("target_height", 4096)
 
@@ -39,7 +39,7 @@ class NormalisationProcessor(BaseProcessor):
         return result
 
 
-    def _correct_skew(self, image, context: dict):
+    def _correct_skew(self, image, context: dict) -> np.ndarray:
         try:
             _, binary = cv2.threshold(
                 image,
