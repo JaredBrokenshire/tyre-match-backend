@@ -5,14 +5,16 @@
 - Coverage: %
 
 ### [Added]
+- Added normalisation processor
+- Added resize method to normalisation processor that sets image to specified target width/height while maintaining aspect ratio
+- Added correct skew method to normalisation processor to rotate image relative to strong lines detected by OTSU masking and calculation a principal axis using eigen values
 - Added enhancement processor and moved CLAHE logic to there
-- Added placeholder normalisation processor
 - Added more extensive tests for enhancement processor, including deterministic assertions
 
 ### [Changed]
 - Updated README project structure
-- Updated enhancement processor transform to allow for multiple stages of transformation
 - Moved process and transform processor methods to base processor since they will need to be on all processors
+- Updated base processor transform to allow for multiple stages of transformation
 - Updated return types in processing pipeline to reduce IO Read/Write operations
 - Changed the tyre impression processed image extensions from jpg to png to reduce cumulative compression artifacts
 

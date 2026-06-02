@@ -17,9 +17,9 @@ def context():
     return {
         "clahe_clip_limit": 2.5,
         "clahe_tile_grid_size": (4,4),
-        "output_directories": {"normalisation", "/files/test_directory/normalised"},
+        "output_directories": {"enhancement", "/files/test_directory/enhanced"},
         "processing_id": 1,
-        "file_types_on_completion": {"normalisation": FileType.normalised},
+        "file_types_on_completion": {"enhancement": FileType.enhanced},
     }
 
 

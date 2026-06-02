@@ -1,3 +1,4 @@
+import cv2
 import logging
 from domain.exceptions import ProcessorError
 from pipelines.processors.base_processor import BaseProcessor
@@ -17,8 +18,6 @@ class EnhancementProcessor(BaseProcessor):
 
 
     def _apply_clahe(self, image, context: dict):
-        import cv2
-
         clip_limit = context.get("clahe_clip_limit", 2.0)
         tile_grid_size = context.get("clahe_tile_grid_size", (4, 4))
 
