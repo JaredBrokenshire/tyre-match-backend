@@ -6,9 +6,11 @@
 
 ### [Added]
 - Added get by ID method for tyre impressions
+- Added file route for returning images to the frontend
 
 ### [Fixed]
 - Stopped the file service from appending the file name to the end of the returned file location
+- Fixed some file naming inconsistencies
 
 
 ## v0.1.4 02/06/2026

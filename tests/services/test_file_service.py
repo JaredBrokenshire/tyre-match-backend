@@ -4,16 +4,33 @@ from random import randint
 from unittest.mock import patch
 from werkzeug.datastructures import FileStorage
 from services.file_service import FileSaveRequest
+from tests.helpers.factories.file_factory import FileFactory
 from utils.random_generators import random_string
 from database.repositories.file_repository import FileRepository
 from database.models.data_types.files import FileModel, FileType
 from services.file_service import FileService, ProcessedImageRequest
-from domain.exceptions import InvalidFileTypeError, InvalidFileError, DatabaseError
+from domain.exceptions import InvalidFileTypeError, InvalidFileError, DatabaseError, ModelNotFoundError
 
 
 @pytest.fixture()
 def service():
     return FileService()
+
+
+def test_get_by_id_invalid_id(service):
+    with pytest.raises(ModelNotFoundError, match="Error getting file by id: 1000"):
+        service.get_by_id(1000)
+
+
+def test_get_by_id(service):
+    file_1 = FileFactory().create(FileModel.tyre_model, 1, False)
+    file_2 = FileFactory().create(FileModel.tyre_model, 1, False)
+
+    res = service.get_by_id(file_1.id)
+
+    assert file_1 == res
+    assert file_2 != res
+
 
 @pytest.fixture()
 def file_save_request():
@@ -130,7 +147,7 @@ def test_save_processed_image(service, processed_image_request):
     files, total_count = FileRepository().get_all()
     assert 1 == len(files) == total_count
     created = files[0]
-    assert created.file_location == f"{processed_image_request.upload_directory}/{processed_image_request.file_name}"
+    assert created.file_location == processed_image_request.upload_directory
     assert created.file_name == processed_image_request.file_name
     assert created.model == processed_image_request.model
     assert created.file_type == processed_image_request.file_type

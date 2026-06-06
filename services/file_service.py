@@ -7,7 +7,7 @@ from werkzeug.datastructures import FileStorage
 from utils.files import validate_file, make_directory
 from database.repositories.file_repository import FileRepository
 from database.models.data_types.files import FileModel, FileType
-from domain.exceptions import InvalidFileTypeError, InvalidFileError, DatabaseError, FileSaveError
+from domain.exceptions import InvalidFileTypeError, InvalidFileError, DatabaseError, FileSaveError, ModelNotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +38,16 @@ class FileService:
     def __init__(self):
         self.base_directory = BASE_FILE_DIRECTORY
         self.file_repository = FileRepository()
+
+
+    def get_by_id(self, id_: int) -> File:
+        file =  self.file_repository.get_by_id(id_)
+
+        if not file:
+            logger.error(f"Error getting file by id: {id_}")
+            raise ModelNotFoundError(f"Error getting file by id: {id_}")
+
+        return file
 
 
     def handle_file(self, request: FileSaveRequest) -> File:
@@ -107,8 +117,8 @@ class FileService:
                 model_id=request.model_id,
                 file_type=request.file_type,
                 file_name=request.file_name,
-                file_location=file_path,
-                mime_type="image/jpeg",
+                file_location=directory_path,
+                mime_type="image/png",
             )
         except DatabaseError as e:
             logger.error(f"DatabaseError creating file for processed image in file service: {e}")

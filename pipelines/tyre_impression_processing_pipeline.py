@@ -67,7 +67,7 @@ class TyreImpressionProcessingPipeline:
             logger.error("TyreImpressionProcessing original image location does not exist")
             raise PipelineError("TyreImpressionProcessing original image location does not exist")
 
-        image = cv2.imread(original_file.file_location, cv2.IMREAD_GRAYSCALE)
+        image = cv2.imread(f"{original_file.file_location}/{original_file.file_name}", cv2.IMREAD_GRAYSCALE)
         if image is None:
             logger.error(f"Unable to read image in tyre impression processing pipeline")
             raise PipelineError(f"Unable to read image in tyre impression processing pipeline")
