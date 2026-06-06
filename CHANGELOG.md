@@ -4,6 +4,9 @@
 - Missed: 
 - Coverage: %
 
+### [Added]
+- Added get by ID method for tyre impressions
+
 
 ## v0.1.4 02/06/2026
 ### [Test Coverage]

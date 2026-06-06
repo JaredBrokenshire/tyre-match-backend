@@ -1,5 +1,7 @@
+from database.models.file import File
 from database.models.tyre_model import TyreModel
 from database.models.tyre_impression import TyreImpression
+from database.models.tyre_impression_processing import TyreImpressionProcessing
 
 
 # API Response Objects
@@ -96,3 +98,35 @@ def assert_tyre_impression_not_in_response(data: dict, tyre_impression: TyreImpr
     ]
 
     assert not matching, f"Tyre impression unexpectedly found: {matching}"
+
+
+def assert_is_not_tyre_impression(data: dict, tyre_impression: TyreImpression):
+    assert data.get("id") != tyre_impression.id
+
+
+# Tyre Impression Processing
+
+def assert_tyre_impression_processing_response(data: dict, tyre_impression_processing: TyreImpressionProcessing):
+    if tyre_impression_processing.id:
+        assert tyre_impression_processing.id == data["id"]
+    if tyre_impression_processing.tyre_impression_id:
+        assert tyre_impression_processing.tyre_impression_id == data["tyre_impression_id"]
+
+
+# Files
+
+def assert_file_response(data: dict, file: File):
+    if file.id:
+        assert file.id == data["id"]
+    if file.model:
+        assert file.model.value == data["model"]
+    if file.model_id:
+        assert file.model_id == data["model_id"]
+    if file.file_type:
+        assert file.file_type.value == data["file_type"]
+    if file.file_name:
+        assert file.file_name == data["file_name"]
+    if file.file_location:
+        assert file.file_location == data["file_location"]
+    if file.mime_type:
+        assert file.mime_type == data["mime_type"]

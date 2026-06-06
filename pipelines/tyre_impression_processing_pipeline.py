@@ -27,7 +27,7 @@ class TyreImpressionProcessingPipeline:
             # Normalisation
             "target_width": 4096,
             "target_height": 4096,
-            "skew_anisotropy_threshold": 2.5,
+            "skew_anisotropy_threshold": 1.0,
 
             # Enhancement
             "denoise_h": 10,

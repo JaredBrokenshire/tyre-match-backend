@@ -4,11 +4,12 @@ from flask import Blueprint, request, jsonify
 from services.tyre_impression_service import TyreImpressionService
 from api.responses.tyre_impression_responses import tyre_impression_response
 from api.responses.response_wrapper import error_response, paginated_response
-from domain.exceptions import InvalidFileTypeError, FileSaveError, DatabaseError
+from domain.exceptions import InvalidFileTypeError, FileSaveError, DatabaseError, ModelNotFoundError
 
 logger = logging.getLogger(__name__)
 
 tyre_impression_blueprint = Blueprint('tyre_impression', __name__)
+
 
 @tyre_impression_blueprint.route('/tyre-impressions', methods=['GET'])
 def get_all():
@@ -28,6 +29,21 @@ def get_all():
         total_count
     )
     return jsonify(res)
+
+
+@tyre_impression_blueprint.route('/tyre-impressions/<int:id_>', methods=['GET'])
+def get_by_id(id_):
+    service = TyreImpressionService()
+
+    try:
+        tyre_impression = service.get_by_id(id_)
+    except ModelNotFoundError as e:
+        logger.error(f"Tyre model with id {id_} not found: {e}")
+        return error_response(http.HTTPStatus.NOT_FOUND, f"Tyre impression with id {id_} not found")
+
+    res = tyre_impression_response(tyre_impression)
+    return jsonify(res)
+
 
 @tyre_impression_blueprint.route('/tyre-impressions/upload', methods=['POST'])
 def upload():

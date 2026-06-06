@@ -9,8 +9,8 @@ from services.file_service import FileService, FileSaveRequest
 from database.models.data_types.files import FileType, FileModel
 from tasks.tyre_impression_tasks import process_tyre_impression_task
 from database.repositories.tyre_impression_repository import TyreImpressionRepository
-from domain.exceptions import InvalidFileTypeError, FileSaveError, DatabaseError, InvalidFileError
 from database.repositories.tyre_impression_processing_repository import TyreImpressionProcessingRepository
+from domain.exceptions import InvalidFileTypeError, FileSaveError, DatabaseError, InvalidFileError, ModelNotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -21,8 +21,24 @@ class TyreImpressionService:
         self.tyre_impression_processing_repository = TyreImpressionProcessingRepository()
         self.file_service = FileService()
 
+
     def get_all(self, page=1, page_size=20) -> (list[TyreImpression], int):
         return self.tyre_impression_repository.get_all(page=page, page_size=page_size)
+
+
+    def get_by_id(self, id_: int) -> TyreImpression:
+        tyre_impression = self.tyre_impression_repository.get_by_id(id_)
+
+        if not tyre_impression:
+            logger.error(f"Error getting tyre impression by id: {id_}")
+            raise ModelNotFoundError(f"Error getting tyre impression by id: {id_}")
+
+        processing = self.tyre_impression_processing_repository.get_by_id(tyre_impression.processing.id)
+        if processing:
+            tyre_impression.processing = processing
+
+        return tyre_impression
+
 
     def upload_impression_image(self, file: FileStorage) -> TyreImpression:
         if not file:
