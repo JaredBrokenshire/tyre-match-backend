@@ -170,5 +170,5 @@ def test_save_file(service):
     with patch.object(FileStorage, "save"):
         result = service._save_file(file, file_location)
 
-        assert result is not None
-        assert f"{file_location}/{file.filename}" == result
+    assert result is not None
+    assert file_location == result

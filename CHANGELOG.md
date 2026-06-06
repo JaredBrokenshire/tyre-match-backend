@@ -7,6 +7,9 @@
 ### [Added]
 - Added get by ID method for tyre impressions
 
+### [Fixed]
+- Stopped the file service from appending the file name to the end of the returned file location
+
 
 ## v0.1.4 02/06/2026
 ### [Test Coverage]

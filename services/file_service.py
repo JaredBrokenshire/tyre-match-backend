@@ -141,6 +141,6 @@ class FileService:
             logger.error(f"OS error when saving file: {e}")
             raise OSError(f"OS error when saving file: {e}")
 
-        return path
+        return directory_path
 
 
