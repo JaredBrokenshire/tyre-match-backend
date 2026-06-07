@@ -2,7 +2,9 @@ import http
 from unittest.mock import patch
 from werkzeug.datastructures import FileStorage
 from database.models.tyre_model import TyreModel
+from database.models.data_types.files import FileModel
 from services.tyre_model_service import TyreModelService
+from tests.helpers.factories.file_factory import FileFactory
 from database.repositories.file_repository import FileRepository
 from tests.helpers.factories.tyre_model_factory import TyreModelFactory
 from domain.exceptions import DatabaseError, InvalidFileTypeError, FileSaveError
@@ -286,16 +288,19 @@ def test_upload_database_error_from_file_service(client):
 
 def test_upload(client):
     tyre_model = TyreModelFactory.create()
+    mock_file_record = FileFactory().create(FileModel.tyre_model, tyre_model.id)
+    tyre_model.files = [mock_file_record]
 
     file = FileStorage(filename="test.jpg")
 
-    response = client.post(
-        f"/tyre-models/{tyre_model.id}/upload",
-        data={
-            "file": (file.stream, file.filename)
-        },
-        content_type="multipart/form-data",
-    )
+    with patch.object(TyreModelService, "upload_image", return_value=tyre_model):
+        response = client.post(
+            f"/tyre-models/{tyre_model.id}/upload",
+            data={
+                "file": (file.stream, file.filename)
+            },
+            content_type="multipart/form-data",
+        )
 
     assert http.HTTPStatus.CREATED == response.status_code
     data = response.get_json()

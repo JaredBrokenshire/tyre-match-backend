@@ -4,6 +4,7 @@ from services.file_service import FileService
 from werkzeug.datastructures import FileStorage
 from database.models.data_types.files import FileModel
 from services.tyre_model_service import TyreModelService
+from tests.helpers.factories.file_factory import FileFactory
 from tests.helpers.factories.tyre_model_factory import TyreModelFactory
 from database.repositories.tyre_model_repository import TyreModelRepository
 from domain.exceptions import ModelNotFoundError, DatabaseError, InvalidFileTypeError, InvalidFileError, FileSaveError
@@ -175,9 +176,12 @@ def test_upload_image_database_error_from_file_service(service):
 def test_upload_image(service):
     tyre_model = TyreModelFactory().create()
 
+    mock_file_record = FileFactory().create(FileModel.tyre_model, tyre_model.id)
+
     file = FileStorage(filename="test-file.jpg")
 
-    res = service.upload_image(tyre_model, file)
+    with patch.object(FileService, "handle_file", return_value=mock_file_record):
+        res = service.upload_image(tyre_model, file)
 
     assert res is not None
     assert res.id == tyre_model.id

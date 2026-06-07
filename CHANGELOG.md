@@ -4,6 +4,9 @@
 - Missed: 
 - Coverage: %
 
+### [Fixed]
+- Fixed tyre model upload tests creating files in the wrong directory
+
 ## v0.1.5 07/06/2026
 ### [Test Coverage]
 - Statements: 1011 
