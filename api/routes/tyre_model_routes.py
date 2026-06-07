@@ -3,13 +3,14 @@ import logging
 from werkzeug.exceptions import BadRequest
 from flask import Blueprint, jsonify, request
 from services.tyre_model_service import TyreModelService
-from domain.exceptions import DatabaseError, ModelNotFoundError
 from api.responses.response_wrapper import paginated_response, error_response
 from api.responses.tyre_model_responses import tyre_model_response, slim_tyre_model_response
+from domain.exceptions import DatabaseError, ModelNotFoundError, InvalidFileTypeError, FileSaveError
 
 logger = logging.getLogger(__name__)
 
 tyre_model_blueprint = Blueprint('tyre_model', __name__)
+
 
 @tyre_model_blueprint.route('/tyre-models', methods=['GET'])
 def get_all():
@@ -70,6 +71,44 @@ def create():
     res = tyre_model_response(tyre_model)
     return jsonify(res), http.HTTPStatus.CREATED
 
+
+@tyre_model_blueprint.route('/tyre-models/<int:id_>/upload', methods=['POST'])
+def upload(id_: int):
+    service = TyreModelService()
+
+    # Extract file from request
+    try:
+        file = request.files['file']
+    except KeyError as e:
+        logger.error(f"No file provided: {e}")
+        return error_response(http.HTTPStatus.BAD_REQUEST, "No file provided")
+
+    if not file:
+        logger.error(f"No filename provided: file={file}")
+        return error_response(http.HTTPStatus.BAD_REQUEST, "No filename provided")
+
+    try:
+        tyre_model = service.get_by_id(id_)
+    except ModelNotFoundError as e:
+        logger.error(f"Tyre model with id {id_} not found: {e}")
+        return error_response(http.HTTPStatus.NOT_FOUND, f"TyreModel with id {id_} not found")
+
+    try:
+        tyre_model = service.upload_image(tyre_model, file)
+    except InvalidFileTypeError as e:
+        logger.error(f"Invalid file type error: {e}")
+        return error_response(http.HTTPStatus.BAD_REQUEST, "File type not supported")
+    except FileSaveError as e:
+        logger.error(f"File save error: {e}")
+        return error_response(http.HTTPStatus.INTERNAL_SERVER_ERROR, "Error saving file to storage")
+    except DatabaseError as e:
+        logger.error(f"Database error: {e}")
+        return error_response(http.HTTPStatus.INTERNAL_SERVER_ERROR, "Error saving file to database")
+
+    res = tyre_model_response(tyre_model)
+    return jsonify(res), http.HTTPStatus.CREATED
+
+
 @tyre_model_blueprint.route('/tyre-models/<int:id_>', methods=['PATCH'])
 def update(id_):
     service = TyreModelService()
@@ -95,6 +134,7 @@ def update(id_):
 
     res = tyre_model_response(tyre_model)
     return jsonify(res), http.HTTPStatus.OK
+
 
 @tyre_model_blueprint.route('/tyre-models/<int:id_>', methods=['DELETE'])
 def delete(id_):

@@ -1,4 +1,6 @@
+from typing import List
 from database.session import Base
+from database.models.file import File
 from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy import Column, Integer, String, Float
 
@@ -28,6 +30,9 @@ class TyreModel(Base):
     # Research Metadata
     dataset_source = Column(LONGTEXT, nullable=True)
     notes = Column(LONGTEXT, nullable=True)
+
+    # Not table column, typing only
+    files: List[File] = []
 
     def __repr__(self):
         return f"<TyreModel {self.manufacturer} {self.model_name}>"

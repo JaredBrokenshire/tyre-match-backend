@@ -1,3 +1,6 @@
+from api.responses.file_responses import file_response
+
+
 def slim_tyre_model_response(tyre_model):
     return {
         "id": tyre_model.id,
@@ -7,8 +10,9 @@ def slim_tyre_model_response(tyre_model):
         "vehicle_type": tyre_model.vehicle_type,
     }
 
+
 def tyre_model_response(tyre_model):
-    return {
+    res = {
         "id": tyre_model.id,
         "manufacturer": tyre_model.manufacturer,
         "model_name": tyre_model.model_name,
@@ -23,3 +27,8 @@ def tyre_model_response(tyre_model):
         "dataset_source": tyre_model.dataset_source,
         "notes": tyre_model.notes,
     }
+
+    if tyre_model.files:
+        res["files"] = [file_response(file) for file in tyre_model.files]
+
+    return res

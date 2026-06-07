@@ -21,10 +21,8 @@ class TyreImpressionService:
         self.tyre_impression_processing_repository = TyreImpressionProcessingRepository()
         self.file_service = FileService()
 
-
     def get_all(self, page=1, page_size=20) -> (list[TyreImpression], int):
         return self.tyre_impression_repository.get_all(page=page, page_size=page_size)
-
 
     def get_by_id(self, id_: int) -> TyreImpression:
         tyre_impression = self.tyre_impression_repository.get_by_id(id_)
@@ -38,7 +36,6 @@ class TyreImpressionService:
             tyre_impression.processing = processing
 
         return tyre_impression
-
 
     def upload_impression_image(self, file: FileStorage) -> TyreImpression:
         if not file:

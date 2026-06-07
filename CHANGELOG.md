@@ -7,6 +7,7 @@
 ### [Added]
 - Added get by ID method for tyre impressions
 - Added file route for returning images to the frontend
+- Added image upload endpoint for tyre models
 
 ### [Fixed]
 - Stopped the file service from appending the file name to the end of the returned file location

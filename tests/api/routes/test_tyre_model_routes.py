@@ -1,12 +1,14 @@
 import http
 from unittest.mock import patch
-from domain.exceptions import DatabaseError
+from werkzeug.datastructures import FileStorage
 from database.models.tyre_model import TyreModel
 from services.tyre_model_service import TyreModelService
+from database.repositories.file_repository import FileRepository
 from tests.helpers.factories.tyre_model_factory import TyreModelFactory
+from domain.exceptions import DatabaseError, InvalidFileTypeError, FileSaveError
 from tests.helpers.assertions import assert_paginated_response, assert_slim_tyre_model_response, \
     assert_tyre_model_not_in_response, assert_error_response, assert_tyre_model_response, \
-    assert_is_not_tyre_model
+    assert_is_not_tyre_model, assert_file_response
 
 
 def test_get_all_empty_response(client):
@@ -189,6 +191,120 @@ def test_create(client, database_session):
     assert http.HTTPStatus.CREATED == response.status_code
     data = response.get_json()
     assert_tyre_model_response(data, TyreModel(manufacturer="Test Manufacturer", model_name="Test Model Name"))
+
+
+def test_upload_no_file(client):
+    response = client.post(
+        "/tyre-models/1000/upload",
+        data={"file": None},
+        content_type="multipart/form-data",
+    )
+
+    # Ensure correct status code and error message were returned
+    assert_error_response(response, http.HTTPStatus.BAD_REQUEST, "No file provided")
+
+
+def test_upload_no_filename(client):
+    file = FileStorage(filename="")
+
+    response = client.post(
+        "/tyre-models/1000/upload",
+        data={
+            "file": (file.stream, file.filename)
+        },
+        content_type="multipart/form-data",
+    )
+
+    # Ensure correct status code and error message were returned
+    assert_error_response(response, http.HTTPStatus.BAD_REQUEST, "No filename provided")
+
+
+def test_upload_model_not_found_error_from_tyre_model_service(client):
+    file = FileStorage(filename="test-file.png")
+
+    response = client.post(
+        "/tyre-models/1000/upload",
+        data={
+            "file": (file.stream, file.filename)
+        },
+        content_type="multipart/form-data",
+    )
+
+    assert_error_response(response, http.HTTPStatus.NOT_FOUND, "TyreModel with id 1000 not found")
+
+
+def test_upload_invalid_file_type_error_from_file_service(client):
+    tyre_model = TyreModelFactory.create()
+
+    file = FileStorage(filename="test.jpg")
+
+    with patch.object(TyreModelService, "upload_image", side_effect=InvalidFileTypeError("test error")):
+        response = client.post(
+            f"/tyre-models/{tyre_model.id}/upload",
+            data={
+                "file": (file.stream, file.filename)
+            },
+            content_type="multipart/form-data",
+        )
+
+        assert_error_response(response, http.HTTPStatus.BAD_REQUEST, "File type not supported")
+
+
+def test_upload_file_save_error_from_file_service(client):
+    tyre_model = TyreModelFactory.create()
+
+    file = FileStorage(filename="test.jpg")
+
+    with patch.object(TyreModelService, "upload_image", side_effect=FileSaveError("test error")):
+        response = client.post(
+            f"/tyre-models/{tyre_model.id}/upload",
+            data={
+                "file": (file.stream, file.filename)
+            },
+            content_type="multipart/form-data",
+        )
+
+        assert_error_response(response, http.HTTPStatus.INTERNAL_SERVER_ERROR, "Error saving file to storage")
+
+
+def test_upload_database_error_from_file_service(client):
+    tyre_model = TyreModelFactory.create()
+
+    file = FileStorage(filename="test.jpg")
+
+    with patch.object(TyreModelService, "upload_image", side_effect=DatabaseError("test error")):
+        response = client.post(
+            f"/tyre-models/{tyre_model.id}/upload",
+            data={
+                "file": (file.stream, file.filename)
+            },
+            content_type="multipart/form-data",
+        )
+
+        assert_error_response(response, http.HTTPStatus.INTERNAL_SERVER_ERROR, "Error saving file to database")
+
+
+def test_upload(client):
+    tyre_model = TyreModelFactory.create()
+
+    file = FileStorage(filename="test.jpg")
+
+    response = client.post(
+        f"/tyre-models/{tyre_model.id}/upload",
+        data={
+            "file": (file.stream, file.filename)
+        },
+        content_type="multipart/form-data",
+    )
+
+    assert http.HTTPStatus.CREATED == response.status_code
+    data = response.get_json()
+    assert_tyre_model_response(data, tyre_model)
+    assert 1 == len(data.get("files"))
+
+    files, total_count = FileRepository().get_all()
+    assert 1 == len(files) == total_count
+    assert_file_response(data.get("files")[0], files[0])
 
 
 def test_update_invalid_json(client):

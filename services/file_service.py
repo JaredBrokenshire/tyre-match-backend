@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 BASE_FILE_DIRECTORY = "/tyre_match/files"
 
+
 @dataclass
 class FileSaveRequest:
     file: FileStorage
@@ -22,6 +23,7 @@ class FileSaveRequest:
     model: FileModel
     model_id: int
     file_type: FileType
+
 
 @dataclass
 class ProcessedImageRequest:
@@ -39,16 +41,14 @@ class FileService:
         self.base_directory = BASE_FILE_DIRECTORY
         self.file_repository = FileRepository()
 
-
     def get_by_id(self, id_: int) -> File:
-        file =  self.file_repository.get_by_id(id_)
+        file = self.file_repository.get_by_id(id_)
 
         if not file:
             logger.error(f"Error getting file by id: {id_}")
             raise ModelNotFoundError(f"Error getting file by id: {id_}")
 
         return file
-
 
     def handle_file(self, request: FileSaveRequest) -> File:
         file = request.file
@@ -128,7 +128,6 @@ class FileService:
             logger.error("DatabaseError creating file for processed image in file service")
             raise DatabaseError(f"DatabaseError creating file for processed image in file service")
 
-
     def _save_file(self, file: FileStorage, location: str):
         directory_path = os.path.join(self.base_directory, location)
 
@@ -152,5 +151,3 @@ class FileService:
             raise OSError(f"OS error when saving file: {e}")
 
         return directory_path
-
-
