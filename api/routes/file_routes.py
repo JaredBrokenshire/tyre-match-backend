@@ -14,11 +14,8 @@ file_blueprint = Blueprint('file', __name__)
 def get(id_):
     service = FileService()
 
-    logger.info(f">>> Getting file by id: {id_}")
-
     try:
         file_record = service.get_by_id(id_)
-        logger.info(f">>> FILE RECORD: {file_record}")
     except ModelNotFoundError as e:
         logger.error(f"File with id {id_} not found: {e}")
         return error_response(http.HTTPStatus.NOT_FOUND, f"File with id {id_} not found")
