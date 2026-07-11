@@ -9,7 +9,6 @@ from tests.helpers.factories.tyre_impression_factory import TyreImpressionFactor
 from database.models.data_types.tyre_impression_status import TyreImpressionStatus
 from database.repositories.tyre_impression_repository import TyreImpressionRepository
 from domain.exceptions import InvalidFileTypeError, FileSaveError, DatabaseError, InvalidFileError
-from database.repositories.tyre_impression_processing_repository import TyreImpressionProcessingRepository
 
 
 def test_get_all():
@@ -97,19 +96,6 @@ def test_upload_impression_image_database_error_from_tyre_impression_repository_
                 service.upload_impression_image(file)
 
 
-def test_upload_impression_image_database_error_from_tyre_impression_processing_repository_create():
-    service = TyreImpressionService()
-
-    file = FileStorage(filename="test-file.jpg")
-
-    tyre_impression = TyreImpressionFactory().create()
-
-    with patch.object(TyreImpressionRepository, "create", return_value=tyre_impression):
-        with patch.object(TyreImpressionProcessingRepository, "create", side_effect=DatabaseError("test error")):
-            with pytest.raises(DatabaseError, match="Error creating tyre impression processing record in tyre impression service: test error"):
-                service.upload_impression_image(file)
-
-
 def test_upload_impression_image_invalid_file_error_from_file_service():
     service = TyreImpressionService()
 
@@ -160,24 +146,6 @@ def test_upload_impression_image_database_error_from_file_service():
             service.upload_impression_image(file)
 
 
-def test_upload_impression_image_database_error_from_tyre_impression_processing_repository():
-    service = TyreImpressionService()
-
-    file = FileStorage(filename="test-file.jpg")
-
-    with patch.object(FileService, "handle_file", return_value=File(
-        model=FileModel.tyre_impression,
-        file_type=FileType.original,
-        file_name="test-file.jpg",
-        file_location="/tyre_match/files/test_directory",
-        mime_type="image/jpeg",
-    )):
-        with patch.object(TyreImpressionProcessingRepository, "create", side_effect=DatabaseError("test error")):
-            with pytest.raises(DatabaseError, match="Error creating tyre impression processing record in tyre impression service: test error"):
-                service.upload_impression_image(file)
-
-
-
 def test_upload_impression_image():
     service = TyreImpressionService()
 
@@ -202,8 +170,3 @@ def test_upload_impression_image():
                 tyre_impressions, total_count = TyreImpressionRepository().get_all()
                 assert 1 == len(tyre_impressions) == total_count
                 assert tyre_impressions[0] == result
-
-                # Ensure only one tyre impression processing record was created
-                tyre_impression_processing_records, total_count = TyreImpressionProcessingRepository().get_all()
-                assert 1 == len(tyre_impression_processing_records) == total_count
-                assert result.id == tyre_impression_processing_records[0].tyre_impression_id

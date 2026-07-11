@@ -1,7 +1,8 @@
 from database.session import Base
-from sqlalchemy.orm import relationship
+from database.models.file import File
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, DateTime, Enum
+from typing import ClassVar, Optional, Dict
+from sqlalchemy import Column, Integer, String, DateTime, Enum, Float
 from database.models.data_types.tyre_impression_status import TyreImpressionStatus
 
 
@@ -13,14 +14,17 @@ class TyreImpression(Base):
 
     status = Column(Enum(TyreImpressionStatus), default=TyreImpressionStatus.uploaded, nullable=False)
 
-    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    # Metadata
+    edge_density = Column(Float, nullable=True)
+    void_ratio = Column(Float, nullable=True)
+    groove_count = Column(Integer, nullable=True)
 
-    processing = relationship(
-        "TyreImpressionProcessing",
-        back_populates="tyre_impression",
-        uselist=False,
-        cascade="all, delete-orphan"
-    )
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+
+    # Not table column, typing only
+    files: ClassVar[Optional[Dict[str, File]]] = None
+
 
     def __repr__(self):
         return f"<TyreImpression {self.id}>"

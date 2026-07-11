@@ -1,11 +1,17 @@
-## v0.1.6 `DATE`
+## v0.1.6 1107/2026
 ### [Test Coverage]
-- Statements:  
-- Missed: 
-- Coverage: %
+- Statements: 944
+- Missed: 5
+- Coverage: 99%
+
+### [Changed]
+- Moved tyre impression metadata and file relationships to tyre impression model
 
 ### [Fixed]
 - Fixed tyre model upload tests creating files in the wrong directory
+
+### [Removed]
+- Removed TyreImpressionProcessing object and associated artifacts
 
 ## v0.1.5 07/06/2026
 ### [Test Coverage]

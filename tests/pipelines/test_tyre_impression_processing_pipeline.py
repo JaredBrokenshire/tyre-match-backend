@@ -7,7 +7,6 @@ from domain.exceptions import PipelineError, ProcessorError
 from tests.helpers.factories.file_factory import FileFactory
 from tests.helpers.factories.tyre_impression_factory import TyreImpressionFactory
 from pipelines.tyre_impression_processing_pipeline import TyreImpressionProcessingPipeline
-from tests.helpers.factories.tyre_impression_processing_factory import TyreImpressionProcessingFactory
 
 
 @pytest.fixture
@@ -22,38 +21,35 @@ def test_tyre_impression_processing_pipeline_process_invalid_processing_id(pipel
 
 def test_tyre_impression_processing_pipeline_process_empty_original_file_location(pipeline):
     tyre_impression = TyreImpressionFactory.create()
-    tyre_impression_processing = TyreImpressionProcessingFactory.create(tyre_impression.id)
 
     with pytest.raises(PipelineError, match="TyreImpressionProcessing has no original image"):
-        pipeline.process(tyre_impression_processing.id)
+        pipeline.process(tyre_impression.id)
 
 
 def test_tyre_impression_processing_pipeline_process_invalid_original_file_location(pipeline):
     tyre_impression = TyreImpressionFactory.create()
-    tyre_impression_processing = TyreImpressionProcessingFactory.create(tyre_impression.id)
     FileFactory.create(
         model=FileModel.tyre_impression,
-        model_id=tyre_impression_processing.id,
+        model_id=tyre_impression.id,
         file_location="/invalid/file/location"
     )
 
     with pytest.raises(PipelineError, match="TyreImpressionProcessing original image location does not exist"):
-        pipeline.process(tyre_impression_processing.id)
+        pipeline.process(tyre_impression.id)
 
 
 def test_process_invalid_file_read_from_cv2_imread(pipeline):
     tyre_impression = TyreImpressionFactory.create()
-    tyre_impression_processing = TyreImpressionProcessingFactory.create(tyre_impression.id)
     os.makedirs("/files/test_directory", exist_ok=True)
     FileFactory.create(
         model=FileModel.tyre_impression,
-        model_id=tyre_impression_processing.id,
+        model_id=tyre_impression.id,
         file_location="/files/test_directory"
     )
 
     with patch("cv2.imread", return_value=None):
         with pytest.raises(PipelineError, match="Unable to read image in tyre impression processing pipeline"):
-            pipeline.process(tyre_impression_processing.id)
+            pipeline.process(tyre_impression.id)
 
 
 def test_tyre_impression_processing_pipeline_processor_error(pipeline):
@@ -69,17 +65,16 @@ def test_tyre_impression_processing_pipeline_processor_error(pipeline):
     pipeline.stages = [stage1, stage2]
 
     tyre_impression = TyreImpressionFactory.create()
-    tyre_impression_processing = TyreImpressionProcessingFactory.create(tyre_impression.id)
     os.makedirs("/files/test_directory", exist_ok=True)
     FileFactory.create(
         model=FileModel.tyre_impression,
-        model_id=tyre_impression_processing.id,
+        model_id=tyre_impression.id,
         file_location="/files/test_directory"
     )
 
     with patch("cv2.imread", return_value=np.zeros((10,10))):
         with pytest.raises(PipelineError, match="ProcessorError from stage1 processor: test error"):
-            pipeline.process(tyre_impression_processing.id)
+            pipeline.process(tyre_impression.id)
 
 
 def test_tyre_impression_processing_pipeline_process(pipeline):
@@ -95,16 +90,15 @@ def test_tyre_impression_processing_pipeline_process(pipeline):
     pipeline.stages = [stage1, stage2]
 
     tyre_impression = TyreImpressionFactory.create()
-    tyre_impression_processing = TyreImpressionProcessingFactory.create(tyre_impression.id)
     os.makedirs("/files/test_directory", exist_ok=True)
     original_file = FileFactory.create(
         model=FileModel.tyre_impression,
-        model_id=tyre_impression_processing.id,
+        model_id=tyre_impression.id,
         file_location="/files/test_directory"
     )
 
     with patch("cv2.imread", return_value=np.zeros((10,10))):
-        result = pipeline.process(tyre_impression_processing.id)
+        result = pipeline.process(tyre_impression.id)
 
     stage1.process.assert_called_once()
     assert np.array_equal(stage1.process.call_args[0][0], np.zeros((10,10)))

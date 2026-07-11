@@ -8,10 +8,9 @@ from services.tyre_impression_service import TyreImpressionService
 from domain.exceptions import InvalidFileTypeError, DatabaseError, FileSaveError
 from tests.helpers.factories.tyre_impression_factory import TyreImpressionFactory
 from database.models.data_types.tyre_impression_status import TyreImpressionStatus
-from tests.helpers.factories.tyre_impression_processing_factory import TyreImpressionProcessingFactory
 from tests.helpers.assertions import assert_paginated_response, assert_tyre_impression_response, \
     assert_tyre_impression_not_in_response, assert_error_response, assert_is_not_tyre_impression, \
-    assert_tyre_impression_processing_response, assert_file_response
+    assert_file_response, assert_no_file_response
 
 
 def test_get_all_empty_response(client):
@@ -96,11 +95,10 @@ def test_get_by_id(client, database_session):
     tyre_impression_1 = TyreImpressionFactory.create()
     tyre_impression_2 = TyreImpressionFactory.create()
 
-    tyre_impression_processing = TyreImpressionProcessingFactory.create(tyre_impression_1.id)
-
-    original_file = FileFactory.create(FileModel.tyre_impression, tyre_impression_processing.id, file_type=FileType.original)
-    normalised_file = FileFactory.create(FileModel.tyre_impression, tyre_impression_processing.id, file_type=FileType.normalised)
-    enhanced_file = FileFactory.create(FileModel.tyre_impression, tyre_impression_processing.id, file_type=FileType.enhanced)
+    original_file = FileFactory.create(FileModel.tyre_impression, tyre_impression_1.id, file_type=FileType.original)
+    normalised_file = FileFactory.create(FileModel.tyre_impression, tyre_impression_1.id, file_type=FileType.normalised)
+    enhanced_file = FileFactory.create(FileModel.tyre_impression, tyre_impression_1.id, file_type=FileType.enhanced)
+    impression_2_file = FileFactory.create(FileModel.tyre_impression, tyre_impression_2.id, file_type=FileType.original)
 
     response = client.get(f"/tyre-impressions/{tyre_impression_1.id}")
 
@@ -109,18 +107,15 @@ def test_get_by_id(client, database_session):
     assert_tyre_impression_response(data, tyre_impression_1)
     assert_is_not_tyre_impression(data, tyre_impression_2)
 
-    # Ensure processing object was joined
-    assert data["processing"] is not None
-    assert_tyre_impression_processing_response(data["processing"], tyre_impression_processing)
-
-    # Ensure all files were joined to the processing object
-    assert data["processing"]["files"] is not None
-    assert FileType.original.value in data["processing"]["files"]
-    assert_file_response(data["processing"]["files"][FileType.original.value], original_file)
-    assert FileType.normalised.value in data["processing"]["files"]
-    assert_file_response(data["processing"]["files"][FileType.normalised.value], normalised_file)
-    assert FileType.enhanced.value in data["processing"]["files"]
-    assert_file_response(data["processing"]["files"][FileType.enhanced.value], enhanced_file)
+    # Ensure all necessary files were joined to the response object
+    assert data["files"] is not None
+    assert FileType.original.value in data["files"]
+    assert_file_response(data["files"][FileType.original.value], original_file)
+    assert_no_file_response(data["files"][FileType.original.value], impression_2_file)
+    assert FileType.normalised.value in data["files"]
+    assert_file_response(data["files"][FileType.normalised.value], normalised_file)
+    assert FileType.enhanced.value in data["files"]
+    assert_file_response(data["files"][FileType.enhanced.value], enhanced_file)
 
 
 def test_upload_no_file(client):

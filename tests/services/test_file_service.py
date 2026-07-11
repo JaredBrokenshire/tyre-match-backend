@@ -4,8 +4,8 @@ from random import randint
 from unittest.mock import patch
 from werkzeug.datastructures import FileStorage
 from services.file_service import FileSaveRequest
-from tests.helpers.factories.file_factory import FileFactory
 from utils.random_generators import random_string
+from tests.helpers.factories.file_factory import FileFactory
 from database.repositories.file_repository import FileRepository
 from database.models.data_types.files import FileModel, FileType
 from services.file_service import FileService, ProcessedImageRequest

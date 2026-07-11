@@ -1,8 +1,9 @@
 from celery import shared_task
+from database.models.tyre_impression import TyreImpression
 from services.tyre_impression_processing_service import TyreImpressionProcessingService
 
 
 @shared_task(autoretry_for=(Exception,), retry_backoff=True, max_retries=3)
-def process_tyre_impression_task(tyre_impression_id: int):
+def process_tyre_impression_task(tyre_impression: TyreImpression):
     service = TyreImpressionProcessingService()
-    return service.process_tyre_impression(tyre_impression_id)
+    return service.process_tyre_impression(tyre_impression)

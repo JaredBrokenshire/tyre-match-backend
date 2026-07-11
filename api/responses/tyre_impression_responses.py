@@ -1,13 +1,27 @@
-from api.responses.tyre_impression_processing_responses import tyre_impression_processing_response
+from api.responses.file_responses import file_response
 from database.models.tyre_impression import TyreImpression
 
 
 def tyre_impression_response(tyre_impression: TyreImpression):
-    return {
+    res = {
         "id": tyre_impression.id,
         "uuid": tyre_impression.uuid,
         "status": tyre_impression.status.value,
-        "created_at": tyre_impression.created_at.isoformat() if tyre_impression.created_at else None,
 
-        "processing": tyre_impression_processing_response(tyre_impression.processing) if tyre_impression.processing else None,
+        "edge_density": tyre_impression.edge_density,
+        "void_ratio": tyre_impression.void_ratio,
+        "groove_count": tyre_impression.groove_count,
+
+        "files": {},
+
+        "created_at": tyre_impression.created_at,
+        "updated_at": tyre_impression.updated_at,
     }
+
+    if tyre_impression.files:
+        res["files"] = {
+            key: file_response(file)
+            for key, file in tyre_impression.files.items()
+        }
+
+    return res

@@ -1,6 +1,7 @@
+from database.models.data_types.files import FileModel
+from tests.helpers.factories.file_factory import FileFactory
 from tests.helpers.factories.tyre_impression_factory import TyreImpressionFactory
 from database.repositories.tyre_impression_repository import TyreImpressionRepository
-from tests.helpers.factories.tyre_impression_processing_factory import TyreImpressionProcessingFactory
 
 
 def test_get_by_id_invalid_id():
@@ -11,21 +12,19 @@ def test_get_by_id_invalid_id():
     assert result is None
 
 
-def test_get_by_id_valid_id():
+def test_get_by_id():
     repo = TyreImpressionRepository()
 
     tyre_impression = TyreImpressionFactory().create()
 
-    result = repo.get_by_id(tyre_impression.id)
-    assert tyre_impression == result
-
-
-def test_get_by_id_join_tyre_impression_processing():
-    repo = TyreImpressionRepository()
-
-    tyre_impression = TyreImpressionFactory().create()
-    tyre_impression_processing = TyreImpressionProcessingFactory.create(tyre_impression.id)
+    file = FileFactory().create(
+        model=FileModel.tyre_impression,
+        model_id=tyre_impression.id,
+    )
 
     result = repo.get_by_id(tyre_impression.id)
     assert tyre_impression == result
-    assert tyre_impression_processing == result.processing
+
+    # Ensure file was loaded correctly
+    assert 1 == len(result.files)
+    assert file == result.files[file.file_type.value]

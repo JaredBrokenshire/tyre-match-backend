@@ -9,7 +9,6 @@ from services.file_service import FileService, FileSaveRequest
 from database.models.data_types.files import FileType, FileModel
 from tasks.tyre_impression_tasks import process_tyre_impression_task
 from database.repositories.tyre_impression_repository import TyreImpressionRepository
-from database.repositories.tyre_impression_processing_repository import TyreImpressionProcessingRepository
 from domain.exceptions import InvalidFileTypeError, FileSaveError, DatabaseError, InvalidFileError, ModelNotFoundError
 
 logger = logging.getLogger(__name__)
@@ -18,7 +17,6 @@ logger = logging.getLogger(__name__)
 class TyreImpressionService:
     def __init__(self):
         self.tyre_impression_repository = TyreImpressionRepository()
-        self.tyre_impression_processing_repository = TyreImpressionProcessingRepository()
         self.file_service = FileService()
 
     def get_all(self, page=1, page_size=20) -> (list[TyreImpression], int):
@@ -30,10 +28,6 @@ class TyreImpressionService:
         if not tyre_impression:
             logger.error(f"Error getting tyre impression by id: {id_}")
             raise ModelNotFoundError(f"Error getting tyre impression by id: {id_}")
-
-        processing = self.tyre_impression_processing_repository.get_by_id(tyre_impression.processing.id)
-        if processing:
-            tyre_impression.processing = processing
 
         return tyre_impression
 
@@ -62,22 +56,13 @@ class TyreImpressionService:
                 raise DatabaseError(f"Error creating tyre impression record in tyre impression service: {e}")
 
             try:
-                tyre_impression_processing = self.tyre_impression_processing_repository.create(
-                    tyre_impression_id=tyre_impression.id,
-                )
-            except DatabaseError as e:
-                logger.exception(
-                    f"Error creating tyre impression processing record in tyre impression service: {e}")
-                raise DatabaseError(f"Error creating tyre impression processing record in tyre impression service: {e}")
-
-            try:
                 self.file_service.handle_file(
                     FileSaveRequest(
                         file=file,
                         upload_directory=f"/tyre_match/files/tyre_impressions/{tyre_impression.id}/{FileType.original.value}",
                         valid_extensions=["png", "jpg", "jpeg", "webp"],
                         model=FileModel.tyre_impression,
-                        model_id=tyre_impression_processing.id,
+                        model_id=tyre_impression.id,
                         file_type=FileType.original
                     )
                 )
@@ -95,6 +80,7 @@ class TyreImpressionService:
                 raise FileSaveError(f"Database error from file service in tyre impression service: {e}")
 
         # Trigger async processing task
-        process_tyre_impression_task.delay(tyre_impression_processing.id)
+        process_tyre_impression_task.delay(tyre_impression)
 
         return tyre_impression
+

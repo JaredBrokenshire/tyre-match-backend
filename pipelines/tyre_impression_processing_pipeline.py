@@ -5,7 +5,7 @@ from database.models.data_types.files import FileType
 from domain.exceptions import ProcessorError, PipelineError
 from pipelines.processors.enhancement_processor import EnhancementProcessor
 from pipelines.processors.normalisation_processor import NormalisationProcessor
-from database.repositories.tyre_impression_processing_repository import TyreImpressionProcessingRepository
+from database.repositories.tyre_impression_repository import TyreImpressionRepository
 
 logger = logging.getLogger(__name__)
 
@@ -50,15 +50,15 @@ class TyreImpressionProcessingPipeline:
             "execution_trace": []
         }
 
-        self.tyre_impression_processing_repository = TyreImpressionProcessingRepository()
+        self.tyre_impression_repository = TyreImpressionRepository()
 
     def process(self, processing_id: int):
-        tyre_impression_processing = self.tyre_impression_processing_repository.get_by_id(processing_id)
-        if not tyre_impression_processing:
+        tyre_impression = self.tyre_impression_repository.get_by_id(processing_id)
+        if not tyre_impression:
             logger.error(f"TyreImpressionProcessing with id {processing_id} not found")
             raise PipelineError(f"TyreImpressionProcessing with id {processing_id} not found")
 
-        original_file = tyre_impression_processing.files.get(FileType.original.value)
+        original_file = tyre_impression.files.get(FileType.original.value)
         if not original_file or not original_file.file_location:
             logger.error("TyreImpressionProcessing has no original image")
             raise PipelineError("TyreImpressionProcessing has no original image")
@@ -72,9 +72,9 @@ class TyreImpressionProcessingPipeline:
             logger.error(f"Unable to read image in tyre impression processing pipeline")
             raise PipelineError(f"Unable to read image in tyre impression processing pipeline")
 
-        base_output_directory = f"/tyre_match/files/tyre_impressions/{tyre_impression_processing.tyre_impression_id}"
+        base_output_directory = f"/tyre_match/files/tyre_impressions/{tyre_impression.id}"
 
-        self.context["processing_id"] = tyre_impression_processing.id
+        self.context["processing_id"] = tyre_impression.id
         self.context["output_directories"] = {
                 "normalisation": f"{base_output_directory}/normalised",
                 "enhancement": f"{base_output_directory}/enhanced",

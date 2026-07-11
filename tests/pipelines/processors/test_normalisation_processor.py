@@ -1,10 +1,8 @@
-from unittest.mock import patch
-
-import cv2
-import numpy as np
 import pytest
-from database.models.data_types.files import FileType
+import numpy as np
+from unittest.mock import patch
 from domain.exceptions import ProcessorError
+from database.models.data_types.files import FileType
 from pipelines.processors.normalisation_processor import NormalisationProcessor
 
 
