@@ -4,7 +4,8 @@
 - Missed: 
 - Coverage: 
 
-
+### [Fixed]
+- Fixed non-JSON serializable parameter in processing pipeline
 
 ## v0.1.6 11/07/2026
 ### [Test Coverage]

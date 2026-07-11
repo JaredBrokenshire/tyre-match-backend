@@ -1,16 +1,23 @@
 import pytest
 from unittest.mock import patch
-from domain.exceptions import DatabaseError
+from domain.exceptions import DatabaseError, InvalidFileTypeError
 from tests.helpers.factories.tyre_impression_factory import TyreImpressionFactory
 from database.models.data_types.tyre_impression_status import TyreImpressionStatus
 from database.repositories.tyre_impression_repository import TyreImpressionRepository
 from services.tyre_impression_processing_service import TyreImpressionProcessingService
 from pipelines.tyre_impression_processing_pipeline import TyreImpressionProcessingPipeline
 
+@pytest.fixture()
+def service():
+    return TyreImpressionProcessingService()
 
-def test_process_tyre_impression_database_error_from_tyre_impression_repository_update():
-    service = TyreImpressionProcessingService()
 
+def test_process_tyre_impression_invalid_id(service):
+    with pytest.raises(DatabaseError, match="Error getting tyre impression with id 999 in processing service"):
+        service.process_tyre_impression(999)
+
+
+def test_process_tyre_impression_database_error_from_tyre_impression_repository_update(service):
     tyre_impression = TyreImpressionFactory().create()
 
     with patch.object(
@@ -22,13 +29,11 @@ def test_process_tyre_impression_database_error_from_tyre_impression_repository_
             DatabaseError,
             match=f"Error setting tyre impression status `{TyreImpressionStatus.processing}` in processing service: test error"
         ):
-            service.process_tyre_impression(tyre_impression)
+            service.process_tyre_impression(tyre_impression.id)
 
 
 # TODO: Update when exceptions have been defined in pipeline
-def test_process_tyre_impression_error_from_pipeline():
-    service = TyreImpressionProcessingService()
-
+def test_process_tyre_impression_error_from_pipeline(service):
     tyre_impression = TyreImpressionFactory().create()
 
     with patch.object(
@@ -37,7 +42,7 @@ def test_process_tyre_impression_error_from_pipeline():
         side_effect=Exception("test error")
     ):
         with pytest.raises(Exception, match="test error"):
-            service.process_tyre_impression(tyre_impression)
+            service.process_tyre_impression(tyre_impression.id)
 
 
 

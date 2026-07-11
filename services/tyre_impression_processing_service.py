@@ -16,7 +16,12 @@ class TyreImpressionProcessingService:
         self.pipeline = TyreImpressionProcessingPipeline()
 
 
-    def process_tyre_impression(self, tyre_impression: TyreImpression):
+    def process_tyre_impression(self, tyre_impression_id: int):
+        tyre_impression = self.tyre_impression_repository.get_by_id(tyre_impression_id)
+        if tyre_impression is None:
+            logger.error(f"Error getting tyre impression with id {tyre_impression_id} in processing service")
+            raise DatabaseError(f"Error getting tyre impression with id {tyre_impression_id} in processing service")
+
         # Set status -> processing
         tyre_impression.status = TyreImpressionStatus.processing
 

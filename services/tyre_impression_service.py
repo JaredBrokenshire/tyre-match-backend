@@ -80,7 +80,7 @@ class TyreImpressionService:
                 raise FileSaveError(f"Database error from file service in tyre impression service: {e}")
 
         # Trigger async processing task
-        process_tyre_impression_task.delay(tyre_impression)
+        process_tyre_impression_task.delay(tyre_impression.id)
 
         return tyre_impression
 
