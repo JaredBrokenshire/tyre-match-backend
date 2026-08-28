@@ -1,38 +1,61 @@
-name: TyreMatch API CI
+  name: TyreMatch API CI
 
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches: [main]
-  workflow_dispatch:
+  on:
+    push:
+      branches:
+        - main
+    pull_request:
+      branches: [main]
+    workflow_dispatch:
 
-jobs:
-  build-and-test:
-    runs-on: ubuntu-latest
+  jobs:
+    build-and-test:
+      runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      steps:
+        - name: Checkout repository
+          uses: actions/checkout@v4
 
-      - name: Create .env file
-        run: cp .env.dist .env
+        - name: Set up Go
+          uses: actions/setup-go@v5
+          with:
+            go-version: '1.25.0'
+            cache: true
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        - name: Create .env file
+          run: cp .env.dist .env
 
-      - name: Build containers
-        run: |
-          docker compose up --build -d
-          docker compose -f ./docker-compose-test.yml up --build -d
+        - name: Set up Docker Buildx
+          uses: docker/setup-buildx-action@v3
 
-      - name: Install OpenCV for tests
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libopencv-dev \
-            pkg-config
+        - name: Build docker compose stack
+          run: docker compose up --build -d
 
-      - name: Run tests
-        run: go test ./tests
+        - name: Start test database
+          run: docker compose -f ./docker-compose-test.yml up --build -d
+
+        - name: Install OpenCV dependencies
+          run: |
+            sudo apt-get update
+            sudo apt-get install -y \
+              build-essential \
+              cmake \
+              git \
+              pkg-config
+
+        - name: Install OpenCV 4.13.0
+          run: |
+            git clone --branch v0.43.0 --depth 1 https://github.com/hybridgroup/gocv.git /tmp/gocv
+            cd /tmp/gocv
+            make install
+
+        - name: Run tests
+          run: go test ./tests
+
+        - name: Tear down test database
+          if: always()
+          run: docker compose -f ./docker-compose-test.yml down -v
+
+        - name: Tear down api
+          if: always()
+          run: docker compose down -v
