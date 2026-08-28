@@ -63,7 +63,6 @@ jobs:
           key: ${{ runner.os }}-ubuntu24.04-opencv-4.13.0-pkgconfig-v1
 
       - name: Install OpenCV dependencies
-        if: steps.opencv-cache.outputs.cache-hit != 'true'
         run: |
           sudo apt-get update
           
