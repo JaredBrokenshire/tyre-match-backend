@@ -1,161 +1,159 @@
-  ```yaml
-  name: TyreMatch API CI
+name: TyreMatch API CI
 
-  on:
-    push:
-      branches:
-        - main
-    pull_request:
-      branches:
-        - main
-    workflow_dispatch:
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
 
-  jobs:
-    build-and-test:
-      runs-on: ubuntu-latest
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
 
-      steps:
-        # ---------------------------------------------------------
-        # Checkout
-        # ---------------------------------------------------------
+    steps:
+      # ---------------------------------------------------------
+      # Checkout
+      # ---------------------------------------------------------
 
-        - name: Checkout repository
-          uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-        # ---------------------------------------------------------
-        # Go
-        # ---------------------------------------------------------
+      # ---------------------------------------------------------
+      # Go
+      # ---------------------------------------------------------
 
-        - name: Set up Go
-          uses: actions/setup-go@v5
-          with:
-            go-version: '1.25.0'
-            cache: true
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: true
 
-        # ---------------------------------------------------------
-        # Environment
-        # ---------------------------------------------------------
+      # ---------------------------------------------------------
+      # Environment
+      # ---------------------------------------------------------
 
-        - name: Create .env file
-          run: cp .env.dist .env
+      - name: Create .env file
+        run: cp .env.dist .env
 
-        # ---------------------------------------------------------
-        # Docker
-        # ---------------------------------------------------------
+      # ---------------------------------------------------------
+      # Docker
+      # ---------------------------------------------------------
 
-        - name: Set up Docker Buildx
-          uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-        - name: Build docker compose stack
-          run: docker compose up --build -d
+      - name: Build docker compose stack
+        run: docker compose up --build -d
 
-        - name: Start test database
-          run: docker compose -f ./docker-compose-test.yml up --build -d
+      - name: Start test database
+        run: docker compose -f ./docker-compose-test.yml up --build -d
 
-        # ---------------------------------------------------------
-        # OpenCV 4.13.0
-        # ---------------------------------------------------------
+      # ---------------------------------------------------------
+      # OpenCV 4.13.0
+      # ---------------------------------------------------------
 
-        - name: Cache OpenCV
-          id: opencv-cache
-          uses: actions/cache@v4
-          with:
-            path: ./opencv-install
-            key: ${{ runner.os }}-ubuntu24.04-opencv-4.13.0-pkgconfig-v1
+      - name: Cache OpenCV
+        id: opencv-cache
+        uses: actions/cache@v4
+        with:
+          path: ./opencv-install
+          key: ${{ runner.os }}-ubuntu24.04-opencv-4.13.0-pkgconfig-v1
 
-        - name: Install OpenCV dependencies
-          if: steps.opencv-cache.outputs.cache-hit != 'true'
-          run: |
-            sudo apt-get update
-            
-            sudo apt-get install -y \
-              build-essential \
-              cmake \
-              git \
-              pkg-config \
-              libgtk-3-dev \
-              libavcodec-dev \
-              libavformat-dev \
-              libavutil-dev \
-              libswscale-dev \
-              libv4l-dev \
-              libxvidcore-dev \
-              libx264-dev \
-              libjpeg-dev \
-              libpng-dev \
-              libtiff-dev \
-              gfortran \
-              openexr \
-              libatlas-base-dev \
-              python3-dev \
-              libtbb-dev \
-              libtbbmalloc2 \
-              libdc1394-dev
-
-        - name: Download OpenCV
-          if: steps.opencv-cache.outputs.cache-hit != 'true'
-          run: |
-            git clone --branch 4.13.0 --depth 1 \
-              https://github.com/opencv/opencv.git
-
-        - name: Build OpenCV
-          if: steps.opencv-cache.outputs.cache-hit != 'true'
-          run: |
-            mkdir -p opencv/build
-            cd opencv/build
-            
+      - name: Install OpenCV dependencies
+        if: steps.opencv-cache.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update
+          
+          sudo apt-get install -y \
+            build-essential \
             cmake \
-              -DCMAKE_BUILD_TYPE=Release \
-              -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/opencv-install" \
-              -DOPENCV_GENERATE_PKGCONFIG=ON \
-              -DBUILD_TESTS=OFF \
-              -DBUILD_PERF_TESTS=OFF \
-              -DBUILD_EXAMPLES=OFF \
-              -DBUILD_opencv_apps=OFF \
-              -DBUILD_DOCS=OFF \
-              ..
-            
-            make -j"$(nproc)"
-            make install
+            git \
+            pkg-config \
+            libgtk-3-dev \
+            libavcodec-dev \
+            libavformat-dev \
+            libavutil-dev \
+            libswscale-dev \
+            libv4l-dev \
+            libxvidcore-dev \
+            libx264-dev \
+            libjpeg-dev \
+            libpng-dev \
+            libtiff-dev \
+            gfortran \
+            openexr \
+            libatlas-base-dev \
+            python3-dev \
+            libtbb-dev \
+            libtbbmalloc2 \
+            libdc1394-dev
 
-        - name: Configure OpenCV for GoCV
-          run: |
-            echo "PKG_CONFIG_PATH=$GITHUB_WORKSPACE/opencv-install/lib/pkgconfig:$PKG_CONFIG_PATH" >> "$GITHUB_ENV"
-            echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/opencv-install/lib:$LD_LIBRARY_PATH" >> "$GITHUB_ENV"
+      - name: Download OpenCV
+        if: steps.opencv-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone --branch 4.13.0 --depth 1 \
+            https://github.com/opencv/opencv.git
 
-        - name: Verify OpenCV
-          run: |
-            echo "OpenCV installation:"
-            find "$GITHUB_WORKSPACE/opencv-install" -maxdepth 3 -type f | sort
-            
-            echo
-            echo "OpenCV version:"
-            pkg-config --modversion opencv4
-            
-            echo
-            echo "OpenCV compiler flags:"
-            pkg-config --cflags opencv4
-            
-            echo
-            echo "OpenCV linker flags:"
-            pkg-config --libs opencv4
+      - name: Build OpenCV
+        if: steps.opencv-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p opencv/build
+          cd opencv/build
+          
+          cmake \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/opencv-install" \
+            -DOPENCV_GENERATE_PKGCONFIG=ON \
+            -DBUILD_TESTS=OFF \
+            -DBUILD_PERF_TESTS=OFF \
+            -DBUILD_EXAMPLES=OFF \
+            -DBUILD_opencv_apps=OFF \
+            -DBUILD_DOCS=OFF \
+            ..
+          
+          make -j"$(nproc)"
+          make install
 
-        # ---------------------------------------------------------
-        # Tests
-        # ---------------------------------------------------------
+      - name: Configure OpenCV for GoCV
+        run: |
+          echo "PKG_CONFIG_PATH=$GITHUB_WORKSPACE/opencv-install/lib/pkgconfig:$PKG_CONFIG_PATH" >> "$GITHUB_ENV"
+          echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/opencv-install/lib:$LD_LIBRARY_PATH" >> "$GITHUB_ENV"
 
-        - name: Run tests
-          run: go test ./tests
+      - name: Verify OpenCV
+        run: |
+          echo "OpenCV installation:"
+          find "$GITHUB_WORKSPACE/opencv-install" -maxdepth 3 -type f | sort
+          
+          echo
+          echo "OpenCV version:"
+          pkg-config --modversion opencv4
+          
+          echo
+          echo "OpenCV compiler flags:"
+          pkg-config --cflags opencv4
+          
+          echo
+          echo "OpenCV linker flags:"
+          pkg-config --libs opencv4
 
-        # ---------------------------------------------------------
-        # Cleanup
-        # ---------------------------------------------------------
+      # ---------------------------------------------------------
+      # Tests
+      # ---------------------------------------------------------
 
-        - name: Tear down test database
-          if: always()
-          run: docker compose -f ./docker-compose-test.yml down -v
+      - name: Run tests
+        run: go test ./tests
 
-        - name: Tear down api
-          if: always()
-          run: docker compose down -v
-    ```
+      # ---------------------------------------------------------
+      # Cleanup
+      # ---------------------------------------------------------
+
+      - name: Tear down test database
+        if: always()
+        run: docker compose -f ./docker-compose-test.yml down -v
+
+      - name: Tear down api
+        if: always()
+        run: docker compose down -v
