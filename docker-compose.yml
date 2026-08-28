@@ -1,37 +1,34 @@
-name: tyre_match_backend
-
 services:
-  tyre_match_app:
+  tyre_match_backend:
     container_name: backend
     build:
       context: .
       dockerfile: docker/api/Dockerfile
     ports:
       - ${EXPOSE_PORT}:${PORT}
-    restart: always
+    restart: on-failure
     volumes:
-      - ./:/tyre_match/
+      - ./:/app/
     depends_on:
-      tyre_match_mysql:
-        condition: service_healthy
-      tyre_match_redis:
-        condition: service_started
+      - tyre-match-backend-mysql
     env_file:
       - .env
     environment:
-      FLASK_APP: main:create_app
-      TESTING: 0
+      - DB_CONNECTION=${DB_HOST}:${DB_PORT}
+      - WAIT_HOSTS=${DB_HOST}:${DB_PORT}
+      - WAIT_BEFORE_HOSTS=7
+      - WAIT_SLEEP_INTERVAL=3
     networks:
-      - tyre_match-stack
-    command: sh -c "flask --app main:create_app db upgrade && python main.py"
+      - tyre-match-backend-stack
 
-  tyre_match_mysql:
+  tyre-match-backend-mysql:
+    image: mysql:5.7
+    platform: linux/x86_64
     container_name: database
-    image: mysql:8.0
-    restart: always
     ports:
       - ${EXPOSE_DB_PORT}:${DB_PORT}
     environment:
+      - MYSQL_ROOT_HOST=${DB_HOST}
       - MYSQL_USER=${DB_USER}
       - MYSQL_PASSWORD=${DB_PASSWORD}
       - MYSQL_DATABASE=${DB_NAME}
@@ -39,44 +36,11 @@ services:
     volumes:
       - database_mysql:/var/lib/mysql
     networks:
-      - tyre_match-stack
-    healthcheck:
-      test: [ "CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${DB_PASSWORD}" ]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-      start_period: 20s
-
-  tyre_match_redis:
-    container_name: redis
-    image: redis:7-alpine
-    restart: always
-    ports:
-      - ${CELERY_EXPOSE_PORT}:${CELERY_PORT}
-    networks:
-      - tyre_match-stack
-
-  tyre_match_celery_worker:
-    container_name: celery_worker
-    build:
-      context: .
-      dockerfile: docker/api/Dockerfile
-    command: celery -A celery_config.make_celery worker --loglevel=info
-    restart: always
-    depends_on:
-      - tyre_match_redis
-      - tyre_match_mysql
-    env_file:
-      - .env
-    volumes:
-      - ./:/tyre_match/
-    networks:
-      - tyre_match-stack
+      - tyre-match-backend-stack
 
 volumes:
   database_mysql:
 
 networks:
-  tyre_match-stack:
+  tyre-match-backend-stack:
     driver: bridge
-

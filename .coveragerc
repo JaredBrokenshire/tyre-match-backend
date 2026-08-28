@@ -1,8 +1,0 @@
-[run]
-omit =
-    tests/*
-    alembic/*
-    database/session.py
-    database/extensions.py
-    main.py
-    celery_app.py

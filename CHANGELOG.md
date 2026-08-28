@@ -1,11 +1,11 @@
-## v0.1.7 `DATE`
-### [Test Coverage]
-- Statements: 
-- Missed: 
-- Coverage: 
+## v0.2.0 28/08/2026
 
-### [Fixed]
-- Fixed non-JSON serializable parameter in processing pipeline
+### [Changed]
+- Converted project from Python to Go to make better use of my familiarity with the language
+
+### [Removed]
+- Removed the normalisation processor from the pipeline
+- Removed future test coverage reports from CHANGELOG.md, test coverage will now be reviewed manually and no longer reported
 
 ## v0.1.6 11/07/2026
 ### [Test Coverage]
