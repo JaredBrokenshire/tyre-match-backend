@@ -34,20 +34,19 @@
         - name: Start test database
           run: docker compose -f ./docker-compose-test.yml up --build -d
 
-        - name: Install OpenCV dependencies
-          run: |
-            sudo apt-get update
-            sudo apt-get install -y \
-              build-essential \
-              cmake \
-              git \
-              pkg-config
+        - name: Cache OpenCV
+          id: opencv-cache
+          uses: actions/cache@v2
+          with:
+            path: ./opencv-install
+            key: ${{ runner.os }}-opencv-cache
 
-        - name: Install OpenCV 4.13.0
-          run: |
-            git clone --branch v0.43.0 --depth 1 https://github.com/hybridgroup/gocv.git /tmp/gocv
-            cd /tmp/gocv
-            make install
+        - name: Install OpenCV
+          uses: rayandrews/with-opencv-action@v1
+          with:
+            dir: ./opencv-install
+            cached: ${{ steps.opencv-cache.outputs.cache-hit }}
+            opencv-version: '4.0.0'
 
         - name: Run tests
           run: go test ./tests

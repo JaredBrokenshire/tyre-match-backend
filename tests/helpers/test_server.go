@@ -42,6 +42,7 @@ func NewTestServer(envFileLoc string, migrate bool) *TestServer {
 	)
 	db, err := gorm.Open("mysql", dataSourceName)
 	if err != nil {
+		fmt.Println(">>> ERROR, tried connecting with: ", dataSourceName)
 		log.Fatalf("Unable to connect to test database: %v\n", err.Error())
 	}
 
