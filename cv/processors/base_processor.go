@@ -76,3 +76,17 @@ func (p *BaseProcessor) GetName() string {
 func (p *BaseProcessor) GetFileType() string {
 	return p.FileType
 }
+
+func (p *BaseProcessor) ValidateSourceImage(source *cv.Mat) error {
+	if source == nil {
+		return errors.New("received a nil image")
+	}
+	if source.Empty() {
+		return errors.New("received an empty image")
+	}
+	if source.Channels() != 1 {
+		return errors.New("received a colour image")
+	}
+
+	return nil
+}

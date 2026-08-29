@@ -1,7 +1,6 @@
 package processors
 
 import (
-	"errors"
 	"fmt"
 	cv "gocv.io/x/gocv"
 	"image"
@@ -47,24 +46,22 @@ func NewEnhancementProcessor() *EnhancementProcessor {
 	}
 
 	enhancementProcessor.ProcessingSteps = []ProcessingStep{
-		//enhancementProcessor.ApplyCLAHE,
-		//enhancementProcessor.Denoise,
-		//enhancementProcessor.Sharpen,
+		enhancementProcessor.ApplyCLAHE,
+		enhancementProcessor.Denoise,
+		enhancementProcessor.Sharpen,
 	}
 
 	return enhancementProcessor
 }
 
 func (p *EnhancementProcessor) ApplyCLAHE(source, destination *cv.Mat) error {
-	if source == nil {
-		return errors.New("apply clahe received a nil image")
-	}
-	if source.Empty() {
-		return errors.New("apply clahe received an empty image")
+	err := p.ValidateSourceImage(source)
+	if err != nil {
+		return fmt.Errorf("apply clahe %v", err)
 	}
 
 	clahe := cv.NewCLAHEWithParams(p.CLAHEClipLimit, p.CLAHETileGridSize)
-	err := clahe.Apply(*source, destination)
+	err = clahe.Apply(*source, destination)
 	if err != nil {
 		return fmt.Errorf("apply clahe - apply failed: %v", err)
 	}
@@ -73,14 +70,12 @@ func (p *EnhancementProcessor) ApplyCLAHE(source, destination *cv.Mat) error {
 }
 
 func (p *EnhancementProcessor) Denoise(source, destination *cv.Mat) error {
-	if source == nil {
-		return errors.New("denoise received a nil image")
-	}
-	if source.Empty() {
-		return errors.New("denoise received an empty image")
+	err := p.ValidateSourceImage(source)
+	if err != nil {
+		return fmt.Errorf("denoise %v", err)
 	}
 
-	err := cv.FastNlMeansDenoisingWithParams(*source, destination, p.DenoiseH, p.DenoiseTemplateWindowSize, p.DenoiseSearchWindowSize)
+	err = cv.FastNlMeansDenoisingWithParams(*source, destination, p.DenoiseH, p.DenoiseTemplateWindowSize, p.DenoiseSearchWindowSize)
 	if err != nil {
 		return fmt.Errorf("denoise - fast nl means denoising failed: %v", err)
 	}
@@ -89,17 +84,15 @@ func (p *EnhancementProcessor) Denoise(source, destination *cv.Mat) error {
 }
 
 func (p *EnhancementProcessor) Sharpen(source, destination *cv.Mat) error {
-	if source == nil {
-		return errors.New("sharpen received a nil image")
-	}
-	if source.Empty() {
-		return errors.New("sharpen received an empty image")
+	err := p.ValidateSourceImage(source)
+	if err != nil {
+		return fmt.Errorf("sharpen %v", err)
 	}
 
 	blurred := cv.NewMat()
 	defer blurred.Close()
 
-	err := cv.GaussianBlur(*source, &blurred, p.BlurKSize, p.BlurSigma, p.BlurSigma, p.BlurBorderType)
+	err = cv.GaussianBlur(*source, &blurred, p.BlurKSize, p.BlurSigma, p.BlurSigma, p.BlurBorderType)
 	if err != nil {
 		return fmt.Errorf("sharpen - gaussian blur failed: %v", err)
 	}

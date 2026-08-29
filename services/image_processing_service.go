@@ -38,6 +38,7 @@ func NewImageProcessingService(impressionRepo *repositories.TyreImpressionReposi
 		FileStore:          fileStore,
 		Processors: []processors.Processor{
 			processors.NewEnhancementProcessor(),
+			processors.NewBinaryProcessor(),
 		},
 	}
 }

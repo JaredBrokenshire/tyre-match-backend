@@ -152,3 +152,45 @@ func TestBaseProcessorProcess(t *testing.T) {
 		})
 	}
 }
+
+func TestBaseProcessorValidateSourceImage(t *testing.T) {
+	baseProcessor := processors.NewBaseProcessor("test-processor", "test-file-type")
+
+	emptyImage := cv.NewMat()
+	colourImage := cv.NewMatWithSize(100, 100, cv.MatTypeCV8UC3)
+	validImage := cv.NewMatWithSize(100, 100, cv.MatTypeCV8UC1)
+
+	cases := []struct {
+		Name          string
+		Source        *cv.Mat
+		ExpectedError error
+	}{
+		{
+			Name:          "rejects nil image",
+			Source:        nil,
+			ExpectedError: errors.New("received a nil image"),
+		},
+		{
+			Name:          "rejects empty image",
+			Source:        &emptyImage,
+			ExpectedError: errors.New("received an empty image"),
+		},
+		{
+			Name:          "rejects colour image",
+			Source:        &colourImage,
+			ExpectedError: errors.New("received a colour image"),
+		},
+		{
+			Name:          "accepts valid image",
+			Source:        &validImage,
+			ExpectedError: nil,
+		},
+	}
+
+	for _, test := range cases {
+		t.Run(test.Name, func(t *testing.T) {
+			err := baseProcessor.ValidateSourceImage(test.Source)
+			assert.Equal(t, test.ExpectedError, err)
+		})
+	}
+}

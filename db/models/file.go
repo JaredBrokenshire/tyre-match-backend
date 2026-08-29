@@ -8,12 +8,9 @@ const (
 )
 
 const (
-	FileTypeOriginal   = "original"
-	FileTypeNormalised = "normalised"
-	FileTypeEnhanced   = "enhanced"
-	FileTypeBinary     = "binary"
-	FileTypeClean      = "clean"
-	FileTypeSkeleton   = "skeleton"
+	FileTypeOriginal = "original"
+	FileTypeEnhanced = "enhanced"
+	FileTypeBinary   = "binary"
 )
 
 type File struct {

@@ -1,3 +1,14 @@
+## v0.2.1 `DATE`
+
+### [Added]
+- Added binary processor to image processing pipeline, using adaptive thresholding to convert grayscale image to black/white background/foreground
+- Added source image validation to base processor
+- Added colour image constructor to test helpers
+- Added assert result method to cv test case struct
+
+### [Changed]
+- Updated example.jpg and example.jpeg to more accurately reflect the kind of image this system will receive
+
 ## v0.2.0 28/08/2026
 
 ### [Changed]

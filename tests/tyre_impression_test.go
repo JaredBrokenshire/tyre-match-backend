@@ -96,7 +96,7 @@ func TestTyreImpression_Get(t *testing.T) {
 
 	file1 := &m.File{Model: m.FileModelTyreImpression, ModelId: tyreImpression.ID}
 	factories.NewFile(ts.S.Db, file1)
-	file2 := &m.File{Model: m.FileModelTyreImpression, ModelId: tyreImpression.ID, FileType: m.FileTypeNormalised}
+	file2 := &m.File{Model: m.FileModelTyreImpression, ModelId: tyreImpression.ID, FileType: m.FileTypeEnhanced}
 	factories.NewFile(ts.S.Db, file2)
 	otherImpressionFile := &m.File{Model: m.FileModelTyreImpression, ModelId: tyreImpression2.ID}
 	factories.NewFile(ts.S.Db, otherImpressionFile)

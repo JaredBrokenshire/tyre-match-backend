@@ -3,13 +3,18 @@ package helpers
 import (
 	"fmt"
 	cv "gocv.io/x/gocv"
+	"testing"
 )
 
 type ProcessingStepTest struct {
-	Name          string
-	Source        *cv.Mat
-	ExpectedEqual bool
-	ExpectedError string
+	Name   string
+	Source *cv.Mat
+
+	ExpectedEqual  bool
+	ExpectedResult *cv.Mat
+	ExpectedError  string
+
+	AssertResult func(*testing.T, *cv.Mat)
 }
 
 func ProcessingStepTests(methodName string) []ProcessingStepTest {
@@ -23,6 +28,11 @@ func ProcessingStepTests(methodName string) []ProcessingStepTest {
 			Name:          "Rejects empty image",
 			Source:        Empty(),
 			ExpectedError: fmt.Sprintf("%s received an empty image", methodName),
+		},
+		{
+			Name:          "Rejects colour image",
+			Source:        Colour(),
+			ExpectedError: fmt.Sprintf("%s received a colour image", methodName),
 		},
 		{
 			Name:          "Handles zero width image",

@@ -7,6 +7,11 @@ func Empty() *cv.Mat {
 	return &res
 }
 
+func Colour() *cv.Mat {
+	res := cv.NewMatWithSize(100, 100, cv.MatTypeCV8UC3)
+	return &res
+}
+
 func CloneGray(src cv.Mat) *cv.Mat {
 	dst := src.Clone()
 	return &dst
