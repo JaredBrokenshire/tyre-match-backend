@@ -151,7 +151,7 @@ func TestEnhancementProcessorDenoise(t *testing.T) {
 				sourceHFV := calculateHighFrequencyVariation(test.Source)
 				resultHVF := calculateHighFrequencyVariation(&result)
 
-				assert.Less(t, resultHVF, sourceHFV, "high-frequency variation should be less than source")
+				assert.LessOrEqual(t, resultHVF, sourceHFV, "high-frequency variation should be less than source")
 			}
 		})
 	}

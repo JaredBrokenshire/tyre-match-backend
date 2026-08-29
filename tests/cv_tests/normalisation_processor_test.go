@@ -9,6 +9,46 @@ import (
 	"tyre-match-backend/tests/helpers"
 )
 
+func TestNormalisationProcessorIsolateROI(t *testing.T) {
+	processor := processors.NewNormalisationProcessor()
+
+	source := cv.NewMatWithSize(301, 401, cv.MatTypeCV8UC1)
+	defer source.Close()
+
+	// High-frequency background noise.
+	for y := 0; y < source.Rows(); y++ {
+		for x := 0; x < source.Cols(); x++ {
+			value := uint8((x*17 + y*31) % 256)
+			source.SetUCharAt(y, x, value)
+		}
+	}
+
+	// A simple tread-like structure inside the ROI.
+	for y := 100; y < 250; y++ {
+		for x := 80; x < 320; x++ {
+			if ((x / 10) % 2) == 0 {
+				source.SetUCharAt(y, x, 190)
+			} else {
+				source.SetUCharAt(y, x, 60)
+			}
+		}
+	}
+
+	result := cv.NewMat()
+	defer result.Close()
+
+	err := processor.IsolateRegionOfInterest(&source, &result)
+	assert.NoError(t, err)
+	assert.False(t, result.Empty())
+
+	// Pixels comfortably inside the configured ROI must be preserved.
+	assert.Equal(t, source.GetUCharAt(150, 200), result.GetUCharAt(150, 200))
+
+	// A pixel outside the ROI should no longer retain the original
+	// high-frequency value exactly.
+	assert.NotEqual(t, source.GetUCharAt(40, 40), result.GetUCharAt(40, 40))
+}
+
 func TestNormalisationProcessorCorrectIllumination(t *testing.T) {
 	processor := processors.NewNormalisationProcessor()
 
