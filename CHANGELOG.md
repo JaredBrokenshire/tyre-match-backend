@@ -5,9 +5,13 @@
 - Added source image validation to base processor
 - Added colour image constructor to test helpers
 - Added assert result method to cv test case struct
+- Added normalisation processor to image processing pipeline, using
+``` normalised = (source / illumination) * mean(illumination) ``` to correct for broad lighting changes
+ 
 
 ### [Changed]
 - Updated example.jpg and example.jpeg to more accurately reflect the kind of image this system will receive
+- Reordered steps in enhancement processor to reduce high-frequency noise from background
 
 ## v0.2.0 28/08/2026
 

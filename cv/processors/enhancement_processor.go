@@ -33,7 +33,7 @@ func NewEnhancementProcessor() *EnhancementProcessor {
 
 		DenoiseH:                  10,
 		DenoiseTemplateWindowSize: 7,
-		DenoiseSearchWindowSize:   12,
+		DenoiseSearchWindowSize:   21,
 
 		BlurSigma:      1.0,
 		BlurKSize:      image.Pt(0, 0),
@@ -46,8 +46,8 @@ func NewEnhancementProcessor() *EnhancementProcessor {
 	}
 
 	enhancementProcessor.ProcessingSteps = []ProcessingStep{
-		enhancementProcessor.ApplyCLAHE,
 		enhancementProcessor.Denoise,
+		enhancementProcessor.ApplyCLAHE,
 		enhancementProcessor.Sharpen,
 	}
 

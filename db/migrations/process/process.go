@@ -16,5 +16,6 @@ func getMigrationsList() []store.Migratable {
 		&list.CreateTyreImpressionsTable{},
 		&list.CreateFilesTable{},
 		&list.UpdateFilesFileTypeAddBinary{},
+		&list.UpdateFilesFileTypeAddNormalised{},
 	}
 }
