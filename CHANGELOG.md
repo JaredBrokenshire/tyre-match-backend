@@ -7,11 +7,13 @@
 - Added assert result method to cv test case struct
 - Added normalisation processor to image processing pipeline, using
 ``` normalised = (source / illumination) * mean(illumination) ``` to correct for broad lighting changes
-- Added region of interest isolation to the normalisation processor, hard-coded bounding box parameter and aggressive gaussian blur to remove detail outside ROI
+- Added region of interest (ROI) isolation to the normalisation processor, hard-coded bounding box parameter and aggressive gaussian blur to remove detail outside ROI
+- Added ROI parameters to the create method for tyre impressions
 
 ### [Changed]
 - Updated example.jpg and example.jpeg to more accurately reflect the kind of image this system will receive
 - Reordered steps in enhancement processor to reduce high-frequency noise from background
+- Updated GitHub workflow to successfully build project with GoCV/OpenCV and run all tests on push to main branch
 
 ## v0.2.0 28/08/2026
 

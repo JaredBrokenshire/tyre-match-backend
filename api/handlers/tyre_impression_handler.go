@@ -94,6 +94,10 @@ func (h *TyreImpressionHandler) Create(c echo.Context) error {
 
 	dto := services.TyreImpressionDTO{
 		PixelsPerInch: req.PixelsPerInch,
+		ROITop:        req.ROITop,
+		ROILeft:       req.ROILeft,
+		ROIRight:      req.ROIRight,
+		ROIBottom:     req.ROIBottom,
 	}
 
 	tyreImpression, err := h.server.Services.TyreImpression.Create(dto)

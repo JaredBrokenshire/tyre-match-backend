@@ -27,19 +27,19 @@ import (
 // This processor deliberately does not resize, threshold, denoise, sharpen or
 // otherwise alter high-frequency tread detail. Those operations belong to
 // later stages of the pipeline.
+//
+// ROI coordinates are absolute pixel values supplied per-impression at
+// processing time. They define the bounding box of the tyre impression
+// within the photograph so that the surrounding background can be blurred
+// without affecting tread detail.
 type NormalisationProcessor struct {
 	BaseProcessor
 
-	// ROI coordinates are fractions of image dimensions. They are intentionally
-	// configurable because the photographic rig/dataset framing may change.
-	//
-	// These defaults are based on the supplied standardised dirt-impression
-	// photograph: the impression occupies the central/lower part of the frame,
-	// with the ruler below it and asphalt on either side.
-	ROILeftFraction   float64
-	ROIRightFraction  float64
-	ROITopFraction    float64
-	ROIBottomFraction float64
+	// ROI coordinates are absolute pixel values for this impression.
+	ROITop    int
+	ROILeft   int
+	ROIRight  int
+	ROIBottom int
 
 	// Everything outside the ROI is blurred with this sigma. A relatively large
 	// sigma suppresses the high-frequency asphalt texture without introducing
@@ -55,18 +55,17 @@ type NormalisationProcessor struct {
 	MinimumIlluminationSigma float64
 }
 
-func NewNormalisationProcessor() *NormalisationProcessor {
+func NewNormalisationProcessor(roiTop, roiLeft, roiRight, roiBottom int) *NormalisationProcessor {
 	processor := &NormalisationProcessor{
 		BaseProcessor: BaseProcessor{
 			Name:     "normalisation",
 			FileType: m.FileTypeNormalised,
 		},
 
-		// TODO: Have these values stored for each impression at upload
-		ROILeftFraction:   0.075,
-		ROIRightFraction:  0.92,
-		ROITopFraction:    0.27,
-		ROIBottomFraction: 0.86,
+		ROITop:    roiTop,
+		ROILeft:   roiLeft,
+		ROIRight:  roiRight,
+		ROIBottom: roiBottom,
 
 		OutsideBlurSigma: 101.0,
 
@@ -87,10 +86,10 @@ func (p *NormalisationProcessor) IsolateRegionOfInterest(source, destination *cv
 		return fmt.Errorf("isolate roi %v", err)
 	}
 
-	left := int(math.Round(float64(source.Cols()) * p.ROILeftFraction))
-	right := int(math.Round(float64(source.Cols()) * p.ROIRightFraction))
-	top := int(math.Round(float64(source.Rows()) * p.ROITopFraction))
-	bottom := int(math.Round(float64(source.Rows()) * p.ROIBottomFraction))
+	left := p.ROILeft
+	right := p.ROIRight
+	top := p.ROITop
+	bottom := p.ROIBottom
 
 	roi := image.Rect(left, top, right, bottom)
 

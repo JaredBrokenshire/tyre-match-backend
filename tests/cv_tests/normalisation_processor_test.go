@@ -10,7 +10,7 @@ import (
 )
 
 func TestNormalisationProcessorIsolateROI(t *testing.T) {
-	processor := processors.NewNormalisationProcessor()
+	processor := processors.NewNormalisationProcessor(90, 70, 370, 260)
 
 	source := cv.NewMatWithSize(301, 401, cv.MatTypeCV8UC1)
 	defer source.Close()
@@ -50,7 +50,7 @@ func TestNormalisationProcessorIsolateROI(t *testing.T) {
 }
 
 func TestNormalisationProcessorCorrectIllumination(t *testing.T) {
-	processor := processors.NewNormalisationProcessor()
+	processor := processors.NewNormalisationProcessor(0, 0, 400, 300)
 
 	realisticImage := cv.IMRead(
 		"../../assets/example.jpg",

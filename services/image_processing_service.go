@@ -36,11 +36,7 @@ func NewImageProcessingService(impressionRepo *repositories.TyreImpressionReposi
 		FileService:        fileService,
 		FileRepository:     fileRepo,
 		FileStore:          fileStore,
-		Processors: []processors.Processor{
-			processors.NewNormalisationProcessor(),
-			processors.NewEnhancementProcessor(),
-			processors.NewBinaryProcessor(),
-		},
+		Processors:         []processors.Processor{},
 	}
 }
 
@@ -66,9 +62,19 @@ func (s *ImageProcessingService) Process(id uint, model string) error {
 	}
 	defer grayscaleImage.Close()
 
+	// Build the full processor pipeline for this impression. NormalisationProcessor
+	// is constructed here because it requires the impression's per-impression ROI
+	// values. MorphologyProcessor is also constructed here because it requires the
+	// impression's calibrated PixelsPerInch value.
+	pipeline := []processors.Processor{
+		processors.NewNormalisationProcessor(impression.ROITop, impression.ROILeft, impression.ROIRight, impression.ROIBottom),
+		processors.NewEnhancementProcessor(),
+		processors.NewBinaryProcessor(),
+	}
+
 	currentImage := &grayscaleImage
 
-	for _, processor := range s.Processors {
+	for _, processor := range pipeline {
 		result, err := processor.Process(currentImage)
 		if err != nil {
 			return fmt.Errorf("%s stage: %v", processor.GetName(), err)

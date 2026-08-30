@@ -16,7 +16,13 @@ type TyreImpression struct {
 	Status string `json:"status"`
 
 	PixelsPerInch float32 `json:"pixels_per_inch"`
-	EdgeDensity   float32 `json:"edge_density"`
+
+	ROITop    int `json:"roi_top"`
+	ROILeft   int `json:"roi_left"`
+	ROIRight  int `json:"roi_right"`
+	ROIBottom int `json:"roi_bottom"`
+
+	EdgeDensity float32 `json:"edge_density"`
 	VoidRatio     float32 `json:"void_ratio"`
 	GrooveCount   int     `json:"groove_count"`
 

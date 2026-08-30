@@ -191,6 +191,10 @@ func TestTyreImpression_Create(t *testing.T) {
 			Request: request,
 			RequestBody: requests.CreateTyreImpressionRequest{
 				PixelsPerInch: 60,
+				ROITop:        100,
+				ROILeft:       50,
+				ROIRight:      800,
+				ROIBottom:     600,
 			},
 			Expected: helpers.ExpectedResponse{
 				StatusCode: http.StatusCreated,

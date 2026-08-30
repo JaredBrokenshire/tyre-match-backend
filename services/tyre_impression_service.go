@@ -12,6 +12,10 @@ import (
 
 type TyreImpressionDTO struct {
 	PixelsPerInch float32 `json:"pixels_per_inch"`
+	ROITop        int     `json:"roi_top"`
+	ROILeft       int     `json:"roi_left"`
+	ROIRight      int     `json:"roi_right"`
+	ROIBottom     int     `json:"roi_bottom"`
 }
 
 type TyreImpressionService struct {
@@ -56,6 +60,10 @@ func (s *TyreImpressionService) Get(id uint) (*m.TyreImpression, error) {
 func (s *TyreImpressionService) Create(dto TyreImpressionDTO) (*m.TyreImpression, error) {
 	tyreImpression := &m.TyreImpression{
 		PixelsPerInch: dto.PixelsPerInch,
+		ROITop:        dto.ROITop,
+		ROILeft:       dto.ROILeft,
+		ROIRight:      dto.ROIRight,
+		ROIBottom:     dto.ROIBottom,
 		Status:        m.TyreImpressionStatusUploaded,
 	}
 	if err := s.repo.Create(tyreImpression); err != nil {
