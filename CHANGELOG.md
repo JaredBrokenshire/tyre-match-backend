@@ -1,5 +1,7 @@
 ## v0.2.1 `DATE`
 
+## v0.2.1 30/08/2026
+
 ### [Added]
 - Added binary processor to image processing pipeline, using adaptive thresholding to convert grayscale image to black/white background/foreground
 - Added source image validation to base processor
