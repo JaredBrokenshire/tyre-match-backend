@@ -200,13 +200,13 @@ func TestTyreImpression_Create(t *testing.T) {
 				StatusCode: http.StatusCreated,
 				BodyParts: []string{
 					`"pixels_per_inch":60`,
-					fmt.Sprintf(`"status":"%v"`, m.TyreImpressionStatusUploaded),
+					fmt.Sprintf(`"status":"%v"`, m.ProcessingStatusUploaded),
 				},
 				DatabaseCheck: &helpers.DatabaseCheck{
 					Name: "TyreImpression was created",
 					Model: m.TyreImpression{
 						PixelsPerInch: 60,
-						Status:        m.TyreImpressionStatusUploaded,
+						Status:        m.ProcessingStatusUploaded,
 					},
 					CountExpected: 1,
 				},
@@ -228,6 +228,7 @@ func TestTyreImpression_Upload(t *testing.T) {
 	fileStoreMock := mocks.NewFileStoreMock()
 	ts.SetFileStore(fileStoreMock)
 	imageProcessingServiceMock := mocks.NewImageProcessingServiceMock()
+	validator := services.NewUploadedFileValidator()
 
 	setup := func(test *helpers.TestCase) {
 		ts.ClearTable("files")
@@ -237,7 +238,7 @@ func TestTyreImpression_Upload(t *testing.T) {
 			ts.S.Repos.TyreImpression,
 			ts.S.Repos.File,
 			fileStoreMock,
-			services.NewUploadedFileValidator(),
+			validator,
 			imageProcessingServiceMock,
 		)
 	}
@@ -349,7 +350,7 @@ func TestTyreImpression_Upload(t *testing.T) {
 			Expected: helpers.ExpectedResponse{
 				StatusCode:    http.StatusInternalServerError,
 				BodyPart:      "Error processing TyreImpression image",
-				DatabaseCheck: &helpers.DatabaseCheck{Name: "Tyre impression is marked failed", Model: m.TyreImpression{ID: tyreImpression.ID, Status: m.TyreImpressionStatusFailed}, CountExpected: 1},
+				DatabaseCheck: &helpers.DatabaseCheck{Name: "Tyre impression is marked failed", Model: m.TyreImpression{ID: tyreImpression.ID, Status: m.ProcessingStatusFailed}, CountExpected: 1},
 				ExpectedCallBack: func(res *httptest.ResponseRecorder) {
 					assert.Equal(t, []struct {
 						ID    uint

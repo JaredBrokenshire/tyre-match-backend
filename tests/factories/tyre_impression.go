@@ -19,6 +19,6 @@ func fillTyreImpressionDefaults(tyreImpression *m.TyreImpression) {
 		tyreImpression.PixelsPerInch = 1
 	}
 	if tyreImpression.Status == "" {
-		tyreImpression.Status = m.TyreImpressionStatusUploaded
+		tyreImpression.Status = m.ProcessingStatusUploaded
 	}
 }

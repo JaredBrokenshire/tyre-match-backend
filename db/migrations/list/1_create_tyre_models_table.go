@@ -15,13 +15,10 @@ func (m *CreateTyreModelsTable) Up(con *sqlx.DB) {
 	table.PrimaryKey("id")
 	table.String("manufacturer", 255).NotNull()
 	table.String("model_name", 255).NotNull()
-	table.String("category", 255).Nullable()
-	table.String("vehicle_type", 255).Nullable()
 	table.Integer("width_mm").Nullable()
 	table.Integer("aspect_ratio").Nullable()
 	table.Integer("rim_diameter_inches").Nullable()
 	table.Integer("groove_count").Nullable()
-	table.String("pattern_type", 255).Nullable()
 	table.WithTimestamps()
 	table.MustExec()
 }

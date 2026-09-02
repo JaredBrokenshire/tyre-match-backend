@@ -22,4 +22,7 @@ func fillTyreModelDefaults(tyreModel *m.TyreModel) {
 	if tyreModel.ModelName == "" {
 		tyreModel.ModelName = random.String(16)
 	}
+	if tyreModel.Status == "" {
+		tyreModel.Status = m.ProcessingStatusProcessed
+	}
 }

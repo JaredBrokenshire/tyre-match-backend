@@ -24,15 +24,17 @@ type ImageProcessor interface {
 
 type ImageProcessingService struct {
 	TyreImpressionRepo *repositories.TyreImpressionRepository
+	TyreModelRepo      *repositories.TyreModelRepository
 	*FileService
 	*repositories.FileRepository
 	FileStore  file_storage.Store
 	Processors []processors.Processor
 }
 
-func NewImageProcessingService(impressionRepo *repositories.TyreImpressionRepository, fileService *FileService, fileRepo *repositories.FileRepository, fileStore file_storage.Store) *ImageProcessingService {
+func NewImageProcessingService(impressionRepo *repositories.TyreImpressionRepository, modelRepo *repositories.TyreModelRepository, fileService *FileService, fileRepo *repositories.FileRepository, fileStore file_storage.Store) *ImageProcessingService {
 	return &ImageProcessingService{
 		TyreImpressionRepo: impressionRepo,
+		TyreModelRepo:      modelRepo,
 		FileService:        fileService,
 		FileRepository:     fileRepo,
 		FileStore:          fileStore,
@@ -41,18 +43,9 @@ func NewImageProcessingService(impressionRepo *repositories.TyreImpressionReposi
 }
 
 func (s *ImageProcessingService) Process(id uint, model string) error {
-	if model != m.FileModelTyreImpression {
-		return fmt.Errorf("unsupported model %q", model)
-	}
-
-	impression := s.TyreImpressionRepo.GetByID(id)
-	if impression == nil {
-		return NotFoundError
-	}
-
-	original := impression.Images[m.FileTypeOriginal]
-	if original == nil {
-		return fmt.Errorf("original image is missing")
+	original, ROITop, ROIRight, ROIBottom, ROILeft, err := s.extractROIAndOriginalImage(id, model)
+	if err != nil {
+		return err
 	}
 
 	imagePath := filepath.Join(s.FileStore.GetStorageLocation(), original.Location, original.Name)
@@ -67,7 +60,7 @@ func (s *ImageProcessingService) Process(id uint, model string) error {
 	// values. MorphologyProcessor is also constructed here because it requires the
 	// impression's calibrated PixelsPerInch value.
 	pipeline := []processors.Processor{
-		processors.NewNormalisationProcessor(impression.ROITop, impression.ROILeft, impression.ROIRight, impression.ROIBottom),
+		processors.NewNormalisationProcessor(ROITop, ROILeft, ROIRight, ROIBottom),
 		processors.NewEnhancementProcessor(),
 		processors.NewBinaryProcessor(),
 	}
@@ -81,7 +74,7 @@ func (s *ImageProcessingService) Process(id uint, model string) error {
 		}
 		defer result.Close()
 
-		if err := s.SaveStage(impression.ID, m.FileModelTyreImpression, processor.GetFileType(), result); err != nil {
+		if err := s.SaveStage(id, model, processor.GetFileType(), result); err != nil {
 			return err
 		}
 
@@ -93,9 +86,27 @@ func (s *ImageProcessingService) Process(id uint, model string) error {
 		currentImage = result
 	}
 
-	impression.Status = m.TyreImpressionStatusProcessed
-	if err := s.TyreImpressionRepo.Update(impression); err != nil {
-		return ProcessingError
+	switch model {
+	case m.FileModelTyreImpression:
+		tyreImpression := s.TyreImpressionRepo.GetByID(id)
+		if tyreImpression == nil {
+			return fmt.Errorf("tyre impression with id %v not found", id)
+		}
+
+		tyreImpression.Status = m.ProcessingStatusProcessed
+		if err := s.TyreImpressionRepo.Update(tyreImpression); err != nil {
+			return ProcessingError
+		}
+	case m.FileModelTyreModel:
+		tyreModel := s.TyreModelRepo.GetByID(id)
+		if tyreModel == nil {
+			return fmt.Errorf("tyre model with id %v not found", id)
+		}
+
+		tyreModel.Status = m.ProcessingStatusProcessed
+		if err := s.TyreModelRepo.Update(tyreModel); err != nil {
+			return ProcessingError
+		}
 	}
 
 	return nil
@@ -104,6 +115,16 @@ func (s *ImageProcessingService) Process(id uint, model string) error {
 func (s *ImageProcessingService) SaveStage(id uint, model, fileType string, resultImage *cv.Mat) error {
 	if resultImage == nil || resultImage.Empty() {
 		return fmt.Errorf("%w: can not save empty result image", ProcessingError)
+	}
+
+	var targetDir string
+	switch model {
+	case m.FileModelTyreImpression:
+		targetDir = "tyre-impressions"
+	case m.FileModelTyreModel:
+		targetDir = "tyre-models"
+	default:
+		return fmt.Errorf("unsupported model %q", model)
 	}
 
 	encoded, err := cv.IMEncode(".png", *resultImage)
@@ -115,7 +136,7 @@ func (s *ImageProcessingService) SaveStage(id uint, model, fileType string, resu
 	request := SaveFileRequest{
 		Data:            encoded.GetBytes(),
 		Name:            fmt.Sprintf("%v.png", random.String(32)),
-		TargetDirectory: fmt.Sprintf("tyre-impressions/%v/%v", id, fileType),
+		TargetDirectory: fmt.Sprintf("%v/%v/%v", targetDir, id, fileType),
 		Model:           model,
 		ModelId:         id,
 		FileType:        fileType,
@@ -142,4 +163,39 @@ func (s *ImageProcessingService) SaveStage(id uint, model, fileType string, resu
 	}
 
 	return nil
+}
+
+func (s *ImageProcessingService) extractROIAndOriginalImage(id uint, model string) (*m.File, int, int, int, int, error) {
+	var tyreImpression *m.TyreImpression
+	var tyreModel *m.TyreModel
+	var original *m.File
+	var ROITop, ROIRight, ROIBottom, ROILeft int
+
+	switch model {
+	case m.FileModelTyreImpression:
+		tyreImpression = s.TyreImpressionRepo.GetByID(id)
+		if tyreImpression == nil {
+			return nil, 0, 0, 0, 0, fmt.Errorf("no tyre impression found with id %d", id)
+		}
+
+		original = tyreImpression.Images[m.FileTypeOriginal]
+
+		ROITop, ROIRight, ROIBottom, ROILeft = tyreImpression.ROITop, tyreImpression.ROIRight, tyreImpression.ROIBottom, tyreImpression.ROILeft
+	case m.FileModelTyreModel:
+		tyreModel = s.TyreModelRepo.GetByID(id)
+		if tyreModel == nil {
+			return nil, 0, 0, 0, 0, fmt.Errorf("no tyre impression found with id %d", id)
+		}
+
+		original = tyreModel.Images[m.FileTypeOriginal]
+		ROITop, ROIRight, ROIBottom, ROILeft = tyreModel.ROITop, tyreModel.ROIRight, tyreModel.ROIBottom, tyreModel.ROILeft
+	default:
+		return nil, 0, 0, 0, 0, fmt.Errorf("unsupported model %q", model)
+	}
+
+	if original == nil {
+		return nil, 0, 0, 0, 0, fmt.Errorf("original image is missing")
+	}
+
+	return original, ROITop, ROIRight, ROIBottom, ROILeft, nil
 }

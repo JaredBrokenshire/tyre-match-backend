@@ -64,7 +64,7 @@ func (s *TyreImpressionService) Create(dto TyreImpressionDTO) (*m.TyreImpression
 		ROILeft:       dto.ROILeft,
 		ROIRight:      dto.ROIRight,
 		ROIBottom:     dto.ROIBottom,
-		Status:        m.TyreImpressionStatusUploaded,
+		Status:        m.ProcessingStatusUploaded,
 	}
 	if err := s.repo.Create(tyreImpression); err != nil {
 		return nil, err
@@ -109,13 +109,13 @@ func (s *TyreImpressionService) Upload(id uint, file UploadedFile) (*m.TyreImpre
 	}
 
 	tyreImpression.Images[m.FileTypeOriginal] = fileRecord
-	tyreImpression.Status = m.TyreImpressionStatusProcessing
+	tyreImpression.Status = m.ProcessingStatusProcessing
 	if err := s.repo.Update(tyreImpression); err != nil {
 		return nil, fmt.Errorf("%w: %w", DatabaseError, err)
 	}
 
 	if err := s.imageProcessingService.Process(tyreImpression.ID, m.FileModelTyreImpression); err != nil {
-		tyreImpression.Status = m.TyreImpressionStatusFailed
+		tyreImpression.Status = m.ProcessingStatusFailed
 		if updateErr := s.repo.Update(tyreImpression); updateErr != nil {
 			return nil, fmt.Errorf("processing failed: %w (also unable to mark as failed: %w)", err, updateErr)
 		}

@@ -20,13 +20,19 @@ type TyreModelDTO struct {
 	RimDiameterInches int
 	GrooveCount       int
 	PatternType       string
+	PixelsPerInch     float32
+	ROITop            int
+	ROILeft           int
+	ROIRight          int
+	ROIBottom         int
 }
 
 type TyreModelService struct {
-	repo      *repositories.TyreModelRepository
-	fileRepo  *repositories.FileRepository
-	fileStore file_storage.Store
-	validator FileValidator
+	repo                   *repositories.TyreModelRepository
+	fileRepo               *repositories.FileRepository
+	fileStore              file_storage.Store
+	validator              FileValidator
+	imageProcessingService ImageProcessingServiceInterface
 }
 
 func NewTyreModelService(
@@ -34,12 +40,14 @@ func NewTyreModelService(
 	fileRepo *repositories.FileRepository,
 	fileStore file_storage.Store,
 	validator FileValidator,
+	imageProcessingService ImageProcessingServiceInterface,
 ) *TyreModelService {
 	return &TyreModelService{
-		repo:      repo,
-		fileRepo:  fileRepo,
-		fileStore: fileStore,
-		validator: validator,
+		repo:                   repo,
+		fileRepo:               fileRepo,
+		fileStore:              fileStore,
+		validator:              validator,
+		imageProcessingService: imageProcessingService,
 	}
 }
 
@@ -69,16 +77,22 @@ func (s *TyreModelService) Create(dto TyreModelDTO) (*m.TyreModel, error) {
 	tyreModel := &m.TyreModel{
 		Manufacturer:      dto.Manufacturer,
 		ModelName:         dto.ModelName,
-		Category:          dto.Category,
-		VehicleType:       dto.VehicleType,
 		WidthMm:           dto.WidthMm,
 		AspectRatio:       dto.AspectRatio,
 		RimDiameterInches: dto.RimDiameterInches,
 		GrooveCount:       dto.GrooveCount,
-		PatternType:       dto.PatternType,
+		ROITop:            dto.ROITop,
+		ROILeft:           dto.ROILeft,
+		ROIRight:          dto.ROIRight,
+		ROIBottom:         dto.ROIBottom,
+		PixelsPerInch:     dto.PixelsPerInch,
+		Status:            m.ProcessingStatusUploaded,
 	}
 
 	if err := s.repo.Create(tyreModel); err != nil {
+		tyreModel.Status = m.ProcessingStatusFailed
+		_ = s.repo.Update(tyreModel)
+
 		return nil, err
 	}
 
@@ -93,13 +107,10 @@ func (s *TyreModelService) Update(id uint, dto TyreModelDTO) (*m.TyreModel, erro
 
 	tyreModel.Manufacturer = dto.Manufacturer
 	tyreModel.ModelName = dto.ModelName
-	tyreModel.Category = dto.Category
-	tyreModel.VehicleType = dto.VehicleType
 	tyreModel.WidthMm = dto.WidthMm
 	tyreModel.AspectRatio = dto.AspectRatio
 	tyreModel.RimDiameterInches = dto.RimDiameterInches
 	tyreModel.GrooveCount = dto.GrooveCount
-	tyreModel.PatternType = dto.PatternType
 
 	if err := s.repo.Update(tyreModel); err != nil {
 		return nil, err
@@ -147,6 +158,21 @@ func (s *TyreModelService) Upload(id uint, file UploadedFile) (*m.TyreModel, err
 	}
 
 	tyreModel.Images[m.FileTypeOriginal] = record
+	tyreModel.Status = m.ProcessingStatusProcessing
+	if err := s.repo.Update(tyreModel); err != nil {
+		return nil, fmt.Errorf("%w: %w", DatabaseError, err)
+	}
+
+	if err := s.imageProcessingService.Process(tyreModel.ID, m.FileModelTyreModel); err != nil {
+		tyreModel.Status = m.ProcessingStatusFailed
+		if updateErr := s.repo.Update(tyreModel); updateErr != nil {
+			return nil, fmt.Errorf("processing failed: %w (also unable to mark as failed: %w)", err, updateErr)
+		}
+		return nil, fmt.Errorf("%w: %w", ProcessingError, err)
+	}
+
+	// Reload so the response includes the generated files
+	tyreModel = s.repo.GetByID(id)
 
 	return tyreModel, nil
 }

@@ -18,5 +18,7 @@ func getMigrationsList() []store.Migratable {
 		&list.UpdateFilesFileTypeAddBinary{},
 		&list.UpdateFilesFileTypeAddNormalised{},
 		&list.UpdateTyreImpressionsAddROI{},
+		&list.UpdateTyreModelsAddStatus{},
+		&list.UpdateTyreModelsAddROIAndPPI{},
 	}
 }

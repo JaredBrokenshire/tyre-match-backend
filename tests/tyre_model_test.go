@@ -9,6 +9,7 @@ import (
 	"testing"
 	"tyre-match-backend/api/requests"
 	m "tyre-match-backend/db/models"
+	"tyre-match-backend/services"
 	"tyre-match-backend/tests/factories"
 	"tyre-match-backend/tests/helpers"
 	"tyre-match-backend/tests/mocks"
@@ -167,13 +168,10 @@ func TestTyreModel_Get(t *testing.T) {
 				BodyParts: []string{
 					fmt.Sprintf(`"manufacturer":"%v"`, tyreModel.Manufacturer),
 					fmt.Sprintf(`"model_name":"%v"`, tyreModel.ModelName),
-					fmt.Sprintf(`"category":"%v"`, tyreModel.Category),
-					fmt.Sprintf(`"vehicle_type":"%v"`, tyreModel.VehicleType),
 					fmt.Sprintf(`"width_mm":%v`, tyreModel.WidthMm),
 					fmt.Sprintf(`"aspect_ratio":%v`, tyreModel.AspectRatio),
 					fmt.Sprintf(`"rim_diameter_inches":%v`, tyreModel.RimDiameterInches),
 					fmt.Sprintf(`"groove_count":%v`, tyreModel.GrooveCount),
-					fmt.Sprintf(`"pattern_type":"%v"`, tyreModel.PatternType),
 					fmt.Sprintf(`"name":"%v"`, file1.Name),
 				},
 				BodyPartsMissing: []string{
@@ -220,18 +218,12 @@ func TestTyreModel_Create(t *testing.T) {
 			RequestBody: requests.CreateTyreModelRequest{
 				Manufacturer: string(make([]byte, 201)),
 				ModelName:    string(make([]byte, 201)),
-				Category:     string(make([]byte, 201)),
-				VehicleType:  string(make([]byte, 201)),
-				PatternType:  string(make([]byte, 201)),
 			},
 			Expected: helpers.ExpectedResponse{
 				StatusCode: http.StatusBadRequest,
 				BodyParts: []string{
 					"Required fields are empty or not valid",
 					"ModelName must be a maximum of 200 characters",
-					"Category must be a maximum of 200 characters",
-					"VehicleType must be a maximum of 200 characters",
-					"PatternType must be a maximum of 200 characters",
 				},
 			},
 		},
@@ -244,6 +236,7 @@ func TestTyreModel_Create(t *testing.T) {
 				WidthMm:           -1,
 				RimDiameterInches: -1,
 				GrooveCount:       -1,
+				PixelsPerInch:     -1,
 			},
 			Expected: helpers.ExpectedResponse{
 				StatusCode: http.StatusBadRequest,
@@ -252,6 +245,7 @@ func TestTyreModel_Create(t *testing.T) {
 					"WidthMm must be 0 or greater",
 					"RimDiameterInches must be 0 or greater",
 					"GrooveCount must be 0 or greater",
+					"PixelsPerInch must be 0 or greater",
 				},
 			},
 		},
@@ -261,36 +255,42 @@ func TestTyreModel_Create(t *testing.T) {
 			RequestBody: requests.CreateTyreModelRequest{
 				Manufacturer:      "Test Manufacturer",
 				ModelName:         "Test ModelName",
-				Category:          "Test Category",
-				VehicleType:       "Test VehicleType",
 				WidthMm:           205,
 				RimDiameterInches: 17,
 				GrooveCount:       4,
-				PatternType:       "Test PatternType",
+				PixelsPerInch:     200.1,
+				ROITop:            200,
+				ROIRight:          200,
+				ROIBottom:         200,
+				ROILeft:           200,
 			},
 			Expected: helpers.ExpectedResponse{
 				StatusCode: http.StatusCreated,
 				BodyParts: []string{
 					`"manufacturer":"Test Manufacturer"`,
 					`"model_name":"Test ModelName"`,
-					`"category":"Test Category"`,
-					`"vehicle_type":"Test VehicleType"`,
 					`"width_mm":205`,
 					`"rim_diameter_inches":17`,
 					`"groove_count":4`,
-					`"pattern_type":"Test PatternType"`,
+					`"pixels_per_inch":200.1`,
+					`"roi_top":200`,
+					`"roi_right":200`,
+					`"roi_bottom":200`,
+					`"roi_left":200`,
 				},
 				DatabaseCheck: &helpers.DatabaseCheck{
 					Name: "TyreModel was created",
 					Model: m.TyreModel{
 						Manufacturer:      "Test Manufacturer",
 						ModelName:         "Test ModelName",
-						Category:          "Test Category",
-						VehicleType:       "Test VehicleType",
 						WidthMm:           205,
 						RimDiameterInches: 17,
 						GrooveCount:       4,
-						PatternType:       "Test PatternType",
+						PixelsPerInch:     200.1,
+						ROITop:            200,
+						ROIRight:          200,
+						ROIBottom:         200,
+						ROILeft:           200,
 					},
 					CountExpected: 1,
 				},
@@ -338,18 +338,12 @@ func TestTyreModel_Update(t *testing.T) {
 			RequestBody: requests.CreateTyreModelRequest{
 				Manufacturer: string(make([]byte, 201)),
 				ModelName:    string(make([]byte, 201)),
-				Category:     string(make([]byte, 201)),
-				VehicleType:  string(make([]byte, 201)),
-				PatternType:  string(make([]byte, 201)),
 			},
 			Expected: helpers.ExpectedResponse{
 				StatusCode: http.StatusBadRequest,
 				BodyParts: []string{
 					"Required fields are empty or not valid",
 					"ModelName must be a maximum of 200 characters",
-					"Category must be a maximum of 200 characters",
-					"VehicleType must be a maximum of 200 characters",
-					"PatternType must be a maximum of 200 characters",
 				},
 			},
 		},
@@ -403,36 +397,27 @@ func TestTyreModel_Update(t *testing.T) {
 			RequestBody: requests.CreateTyreModelRequest{
 				Manufacturer:      "New Manufacturer",
 				ModelName:         "New ModelName",
-				Category:          "New Category",
-				VehicleType:       "New VehicleType",
 				WidthMm:           205,
 				RimDiameterInches: 17,
 				GrooveCount:       4,
-				PatternType:       "New PatternType",
 			},
 			Expected: helpers.ExpectedResponse{
 				StatusCode: http.StatusOK,
 				BodyParts: []string{
 					`"manufacturer":"New Manufacturer"`,
 					`"model_name":"New ModelName"`,
-					`"category":"New Category"`,
-					`"vehicle_type":"New VehicleType"`,
 					`"width_mm":205`,
 					`"rim_diameter_inches":17`,
 					`"groove_count":4`,
-					`"pattern_type":"New PatternType"`,
 				},
 				DatabaseCheck: &helpers.DatabaseCheck{
 					Name: "TyreModel was updated",
 					Model: m.TyreModel{
 						Manufacturer:      "New Manufacturer",
 						ModelName:         "New ModelName",
-						Category:          "New Category",
-						VehicleType:       "New VehicleType",
 						WidthMm:           205,
 						RimDiameterInches: 17,
 						GrooveCount:       4,
-						PatternType:       "New PatternType",
 					},
 					CountExpected: 1,
 				},
@@ -453,10 +438,20 @@ func TestTyreModel_Upload(t *testing.T) {
 
 	fileStoreMock := mocks.NewFileStoreMock()
 	ts.SetFileStore(fileStoreMock)
+	imageProcessingServiceMock := mocks.NewImageProcessingServiceMock()
+	validator := services.NewUploadedFileValidator()
 
 	setup := func(test *helpers.TestCase) {
 		ts.ClearTable("files")
 		fileStoreMock.Reset()
+		imageProcessingServiceMock.Reset()
+		ts.S.Services.TyreModel = services.NewTyreModelService(
+			ts.S.Repos.TyreModel,
+			ts.S.Repos.File,
+			fileStoreMock,
+			validator,
+			imageProcessingServiceMock,
+		)
 	}
 
 	tyreModel := &m.TyreModel{}
@@ -583,6 +578,10 @@ func TestTyreModel_Upload(t *testing.T) {
 					assert.Equal(t, 1, len(fileStoreMock.SaveCalls))
 					assert.Contains(t, fileStoreMock.SaveCalls[0].Path, fmt.Sprintf("tyre-models/%v/%v", tyreModel.ID, m.FileTypeOriginal))
 					assert.Contains(t, fileStoreMock.SaveCalls[0].FileName, ".png")
+					assert.Equal(t, []struct {
+						ID    uint
+						Model string
+					}{{ID: tyreModel.ID, Model: m.FileModelTyreModel}}, imageProcessingServiceMock.ProcessCalls)
 				},
 			},
 		},
@@ -613,6 +612,10 @@ func TestTyreModel_Upload(t *testing.T) {
 					assert.Equal(t, 1, len(fileStoreMock.SaveCalls))
 					assert.Contains(t, fileStoreMock.SaveCalls[0].Path, fmt.Sprintf("tyre-models/%v/%v", tyreModel.ID, m.FileTypeOriginal))
 					assert.Contains(t, fileStoreMock.SaveCalls[0].FileName, ".jpg")
+					assert.Equal(t, []struct {
+						ID    uint
+						Model string
+					}{{ID: tyreModel.ID, Model: m.FileModelTyreModel}}, imageProcessingServiceMock.ProcessCalls)
 				},
 			},
 		},
@@ -643,6 +646,10 @@ func TestTyreModel_Upload(t *testing.T) {
 					assert.Equal(t, 1, len(fileStoreMock.SaveCalls))
 					assert.Contains(t, fileStoreMock.SaveCalls[0].Path, fmt.Sprintf("tyre-models/%v/%v", tyreModel.ID, m.FileTypeOriginal))
 					assert.Contains(t, fileStoreMock.SaveCalls[0].FileName, ".jpeg")
+					assert.Equal(t, []struct {
+						ID    uint
+						Model string
+					}{{ID: tyreModel.ID, Model: m.FileModelTyreModel}}, imageProcessingServiceMock.ProcessCalls)
 				},
 			},
 		},
@@ -673,6 +680,10 @@ func TestTyreModel_Upload(t *testing.T) {
 					assert.Equal(t, 1, len(fileStoreMock.SaveCalls))
 					assert.Contains(t, fileStoreMock.SaveCalls[0].Path, fmt.Sprintf("tyre-models/%v/%v", tyreModel.ID, m.FileTypeOriginal))
 					assert.Contains(t, fileStoreMock.SaveCalls[0].FileName, ".webp")
+					assert.Equal(t, []struct {
+						ID    uint
+						Model string
+					}{{ID: tyreModel.ID, Model: m.FileModelTyreModel}}, imageProcessingServiceMock.ProcessCalls)
 				},
 			},
 		},

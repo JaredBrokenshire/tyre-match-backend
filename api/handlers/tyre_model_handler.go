@@ -96,13 +96,15 @@ func (h *TyreModelHandler) Create(c echo.Context) error {
 	dto := services.TyreModelDTO{
 		Manufacturer:      req.Manufacturer,
 		ModelName:         req.ModelName,
-		Category:          req.Category,
-		VehicleType:       req.VehicleType,
 		WidthMm:           req.WidthMm,
 		AspectRatio:       req.AspectRatio,
 		RimDiameterInches: req.RimDiameterInches,
 		GrooveCount:       req.GrooveCount,
-		PatternType:       req.PatternType,
+		PixelsPerInch:     req.PixelsPerInch,
+		ROITop:            req.ROITop,
+		ROIBottom:         req.ROIBottom,
+		ROILeft:           req.ROILeft,
+		ROIRight:          req.ROIRight,
 	}
 
 	tyreModel, err := h.server.Services.TyreModel.Create(dto)
@@ -145,13 +147,10 @@ func (h *TyreModelHandler) Update(c echo.Context) error {
 	dto := services.TyreModelDTO{
 		Manufacturer:      req.Manufacturer,
 		ModelName:         req.ModelName,
-		Category:          req.Category,
-		VehicleType:       req.VehicleType,
 		WidthMm:           req.WidthMm,
 		AspectRatio:       req.AspectRatio,
 		RimDiameterInches: req.RimDiameterInches,
 		GrooveCount:       req.GrooveCount,
-		PatternType:       req.PatternType,
 	}
 
 	tyreModel, err := h.server.Services.TyreModel.Update(uint(id), dto)

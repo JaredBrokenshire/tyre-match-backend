@@ -1,5 +1,11 @@
 ## v0.2.1 `DATE`
 
+### [Added]
+- Added tyre models to the image processing pipeline
+
+### [Removed]
+- Removed redundant category, pattern type, and vehicle tpe fields from tyre model
+
 ## v0.2.1 30/08/2026
 
 ### [Added]

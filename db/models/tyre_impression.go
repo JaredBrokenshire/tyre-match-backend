@@ -2,14 +2,6 @@ package models
 
 import "time"
 
-const (
-	TyreImpressionStatusUploaded   = "Uploaded"
-	TyreImpressionStatusProcessing = "Processing"
-	TyreImpressionStatusProcessed  = "Processed"
-	TyreImpressionStatusMatched    = "Matched"
-	TyreImpressionStatusFailed     = "Failed"
-)
-
 type TyreImpression struct {
 	ID uint `json:"id" gorm:"primary_key;auto_increment"`
 
@@ -23,8 +15,8 @@ type TyreImpression struct {
 	ROIBottom int `json:"roi_bottom"`
 
 	EdgeDensity float32 `json:"edge_density"`
-	VoidRatio     float32 `json:"void_ratio"`
-	GrooveCount   int     `json:"groove_count"`
+	VoidRatio   float32 `json:"void_ratio"`
+	GrooveCount int     `json:"groove_count"`
 
 	Images map[string]*File `json:"images" gorm:"-"`
 
