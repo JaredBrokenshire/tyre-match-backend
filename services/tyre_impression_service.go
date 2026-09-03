@@ -114,7 +114,7 @@ func (s *TyreImpressionService) Upload(id uint, file UploadedFile) (*m.TyreImpre
 		return nil, fmt.Errorf("%w: %w", DatabaseError, err)
 	}
 
-	if err := s.imageProcessingService.Process(tyreImpression.ID, m.FileModelTyreImpression); err != nil {
+	if err := s.imageProcessingService.ProcessTyreImpression(tyreImpression); err != nil {
 		tyreImpression.Status = m.ProcessingStatusFailed
 		if updateErr := s.repo.Update(tyreImpression); updateErr != nil {
 			return nil, fmt.Errorf("processing failed: %w (also unable to mark as failed: %w)", err, updateErr)

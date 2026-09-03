@@ -342,7 +342,7 @@ func TestTyreImpression_Upload(t *testing.T) {
 			Name: "Can't upload image when image processing fails",
 			Setup: func(test *helpers.TestCase) {
 				setup(test)
-				imageProcessingServiceMock.ProcessError = services.ProcessingError
+				imageProcessingServiceMock.ProcessTyreImpressionError = services.ProcessingError
 			},
 			Request:            getRequest(tyreImpression.ID),
 			RequestReader:      pngBody2,
@@ -352,10 +352,9 @@ func TestTyreImpression_Upload(t *testing.T) {
 				BodyPart:      "Error processing TyreImpression image",
 				DatabaseCheck: &helpers.DatabaseCheck{Name: "Tyre impression is marked failed", Model: m.TyreImpression{ID: tyreImpression.ID, Status: m.ProcessingStatusFailed}, CountExpected: 1},
 				ExpectedCallBack: func(res *httptest.ResponseRecorder) {
-					assert.Equal(t, []struct {
-						ID    uint
-						Model string
-					}{{ID: tyreImpression.ID, Model: m.FileModelTyreImpression}}, imageProcessingServiceMock.ProcessCalls)
+					assert.Equal(t, 1, len(imageProcessingServiceMock.ProcessTyreImpressionCalls))
+					assert.Equal(t, tyreImpression.ID, imageProcessingServiceMock.ProcessTyreImpressionCalls[0].ID)
+					assert.Equal(t, m.ProcessingStatusFailed, imageProcessingServiceMock.ProcessTyreImpressionCalls[0].Status)
 				},
 			},
 		},
@@ -377,10 +376,10 @@ func TestTyreImpression_Upload(t *testing.T) {
 					assert.Equal(t, 1, len(fileStoreMock.SaveCalls))
 					assert.Contains(t, fileStoreMock.SaveCalls[0].Path, fmt.Sprintf("tyre-impressions/%v/%v", tyreImpression.ID, m.FileTypeOriginal))
 					assert.Contains(t, fileStoreMock.SaveCalls[0].FileName, ".png")
-					assert.Equal(t, []struct {
-						ID    uint
-						Model string
-					}{{ID: tyreImpression.ID, Model: m.FileModelTyreImpression}}, imageProcessingServiceMock.ProcessCalls)
+
+					// Ensure image processing service was called correctly
+					assert.Equal(t, 1, len(imageProcessingServiceMock.ProcessTyreImpressionCalls))
+					assert.Equal(t, tyreImpression.ID, imageProcessingServiceMock.ProcessTyreImpressionCalls[0].ID)
 				},
 			},
 		},
@@ -411,10 +410,10 @@ func TestTyreImpression_Upload(t *testing.T) {
 					assert.Equal(t, 1, len(fileStoreMock.SaveCalls))
 					assert.Contains(t, fileStoreMock.SaveCalls[0].Path, fmt.Sprintf("tyre-impressions/%v/%v", tyreImpression.ID, m.FileTypeOriginal))
 					assert.Contains(t, fileStoreMock.SaveCalls[0].FileName, ".jpg")
-					assert.Equal(t, []struct {
-						ID    uint
-						Model string
-					}{{ID: tyreImpression.ID, Model: m.FileModelTyreImpression}}, imageProcessingServiceMock.ProcessCalls)
+
+					// Ensure image processing service was called correctly
+					assert.Equal(t, 1, len(imageProcessingServiceMock.ProcessTyreImpressionCalls))
+					assert.Equal(t, tyreImpression.ID, imageProcessingServiceMock.ProcessTyreImpressionCalls[0].ID)
 				},
 			},
 		},
@@ -445,10 +444,10 @@ func TestTyreImpression_Upload(t *testing.T) {
 					assert.Equal(t, 1, len(fileStoreMock.SaveCalls))
 					assert.Contains(t, fileStoreMock.SaveCalls[0].Path, fmt.Sprintf("tyre-impressions/%v/%v", tyreImpression.ID, m.FileTypeOriginal))
 					assert.Contains(t, fileStoreMock.SaveCalls[0].FileName, ".jpeg")
-					assert.Equal(t, []struct {
-						ID    uint
-						Model string
-					}{{ID: tyreImpression.ID, Model: m.FileModelTyreImpression}}, imageProcessingServiceMock.ProcessCalls)
+
+					// Ensure image processing service was called correctly
+					assert.Equal(t, 1, len(imageProcessingServiceMock.ProcessTyreImpressionCalls))
+					assert.Equal(t, tyreImpression.ID, imageProcessingServiceMock.ProcessTyreImpressionCalls[0].ID)
 				},
 			},
 		},
@@ -479,10 +478,10 @@ func TestTyreImpression_Upload(t *testing.T) {
 					assert.Equal(t, 1, len(fileStoreMock.SaveCalls))
 					assert.Contains(t, fileStoreMock.SaveCalls[0].Path, fmt.Sprintf("tyre-impressions/%v/%v", tyreImpression.ID, m.FileTypeOriginal))
 					assert.Contains(t, fileStoreMock.SaveCalls[0].FileName, ".webp")
-					assert.Equal(t, []struct {
-						ID    uint
-						Model string
-					}{{ID: tyreImpression.ID, Model: m.FileModelTyreImpression}}, imageProcessingServiceMock.ProcessCalls)
+
+					// Ensure image processing service was called correctly
+					assert.Equal(t, 1, len(imageProcessingServiceMock.ProcessTyreImpressionCalls))
+					assert.Equal(t, tyreImpression.ID, imageProcessingServiceMock.ProcessTyreImpressionCalls[0].ID)
 				},
 			},
 		},

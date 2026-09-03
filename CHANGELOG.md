@@ -3,6 +3,9 @@
 ### [Added]
 - Added tyre models to the image processing pipeline
 
+### [Changed]
+- Separated processing of tyre impressions and tyre models in image processing service so different pipelines can be run on them
+
 ### [Removed]
 - Removed redundant category, pattern type, and vehicle tpe fields from tyre model
 

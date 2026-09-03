@@ -465,6 +465,7 @@ func TestTyreModel_Upload(t *testing.T) {
 	png3Body, png3Mw := createMultipartFile(t, "file", "../assets/example.png")
 	png4Body, png4Mw := createMultipartFile(t, "file", "../assets/example.png")
 	png5Body, png5Mw := createMultipartFile(t, "file", "../assets/example.png")
+	png6Body, png6Mw := createMultipartFile(t, "file", "../assets/example.png")
 	// JPG file
 	jpgBody, jpgMw := createMultipartFile(t, "file", "../assets/example.jpg")
 	// JPEG file
@@ -552,6 +553,34 @@ func TestTyreModel_Upload(t *testing.T) {
 			},
 		},
 		{
+			Name: "Can't upload image when image processing fails",
+			Setup: func(test *helpers.TestCase) {
+				setup(test)
+				imageProcessingServiceMock.ProcessTyreModelError = services.ProcessingError
+			},
+			Request:            getRequest(tyreModel.ID),
+			RequestReader:      png6Body,
+			RequestContentType: png6Mw.FormDataContentType(),
+			Expected: helpers.ExpectedResponse{
+				StatusCode: http.StatusInternalServerError,
+				BodyPart:   "Error processing TyreModel image",
+				DatabaseCheck: &helpers.DatabaseCheck{
+					Name: "Tyre model is marked failed",
+					Model: m.TyreModel{
+						ID:     tyreModel.ID,
+						Status: m.ProcessingStatusFailed,
+					},
+					CountExpected: 1,
+				},
+				ExpectedCallBack: func(res *httptest.ResponseRecorder) {
+					// Ensure image processing service was called correctly
+					assert.Equal(t, 1, len(imageProcessingServiceMock.ProcessTyreModelCalls))
+					assert.Equal(t, tyreModel.ID, imageProcessingServiceMock.ProcessTyreModelCalls[0].ID)
+					assert.Equal(t, m.ProcessingStatusFailed, imageProcessingServiceMock.ProcessTyreModelCalls[0].Status)
+				},
+			},
+		},
+		{
 			Name:               "Can upload png",
 			Setup:              setup,
 			Request:            getRequest(tyreModel.ID),
@@ -578,10 +607,10 @@ func TestTyreModel_Upload(t *testing.T) {
 					assert.Equal(t, 1, len(fileStoreMock.SaveCalls))
 					assert.Contains(t, fileStoreMock.SaveCalls[0].Path, fmt.Sprintf("tyre-models/%v/%v", tyreModel.ID, m.FileTypeOriginal))
 					assert.Contains(t, fileStoreMock.SaveCalls[0].FileName, ".png")
-					assert.Equal(t, []struct {
-						ID    uint
-						Model string
-					}{{ID: tyreModel.ID, Model: m.FileModelTyreModel}}, imageProcessingServiceMock.ProcessCalls)
+
+					// Ensure image processing service was called correctly
+					assert.Equal(t, 1, len(imageProcessingServiceMock.ProcessTyreModelCalls))
+					assert.Equal(t, tyreModel.ID, imageProcessingServiceMock.ProcessTyreModelCalls[0].ID)
 				},
 			},
 		},
@@ -612,10 +641,10 @@ func TestTyreModel_Upload(t *testing.T) {
 					assert.Equal(t, 1, len(fileStoreMock.SaveCalls))
 					assert.Contains(t, fileStoreMock.SaveCalls[0].Path, fmt.Sprintf("tyre-models/%v/%v", tyreModel.ID, m.FileTypeOriginal))
 					assert.Contains(t, fileStoreMock.SaveCalls[0].FileName, ".jpg")
-					assert.Equal(t, []struct {
-						ID    uint
-						Model string
-					}{{ID: tyreModel.ID, Model: m.FileModelTyreModel}}, imageProcessingServiceMock.ProcessCalls)
+
+					// Ensure image processing service was called correctly
+					assert.Equal(t, 1, len(imageProcessingServiceMock.ProcessTyreModelCalls))
+					assert.Equal(t, tyreModel.ID, imageProcessingServiceMock.ProcessTyreModelCalls[0].ID)
 				},
 			},
 		},
@@ -646,10 +675,10 @@ func TestTyreModel_Upload(t *testing.T) {
 					assert.Equal(t, 1, len(fileStoreMock.SaveCalls))
 					assert.Contains(t, fileStoreMock.SaveCalls[0].Path, fmt.Sprintf("tyre-models/%v/%v", tyreModel.ID, m.FileTypeOriginal))
 					assert.Contains(t, fileStoreMock.SaveCalls[0].FileName, ".jpeg")
-					assert.Equal(t, []struct {
-						ID    uint
-						Model string
-					}{{ID: tyreModel.ID, Model: m.FileModelTyreModel}}, imageProcessingServiceMock.ProcessCalls)
+
+					// Ensure image processing service was called correctly
+					assert.Equal(t, 1, len(imageProcessingServiceMock.ProcessTyreModelCalls))
+					assert.Equal(t, tyreModel.ID, imageProcessingServiceMock.ProcessTyreModelCalls[0].ID)
 				},
 			},
 		},
@@ -680,10 +709,10 @@ func TestTyreModel_Upload(t *testing.T) {
 					assert.Equal(t, 1, len(fileStoreMock.SaveCalls))
 					assert.Contains(t, fileStoreMock.SaveCalls[0].Path, fmt.Sprintf("tyre-models/%v/%v", tyreModel.ID, m.FileTypeOriginal))
 					assert.Contains(t, fileStoreMock.SaveCalls[0].FileName, ".webp")
-					assert.Equal(t, []struct {
-						ID    uint
-						Model string
-					}{{ID: tyreModel.ID, Model: m.FileModelTyreModel}}, imageProcessingServiceMock.ProcessCalls)
+
+					// Ensure image processing service was called correctly
+					assert.Equal(t, 1, len(imageProcessingServiceMock.ProcessTyreModelCalls))
+					assert.Equal(t, tyreModel.ID, imageProcessingServiceMock.ProcessTyreModelCalls[0].ID)
 				},
 			},
 		},

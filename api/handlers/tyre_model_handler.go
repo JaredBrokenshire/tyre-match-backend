@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/gommon/log"
 	"net/http"
 	"strconv"
 	"tyre-match-backend/api"
@@ -198,14 +199,22 @@ func (h *TyreModelHandler) Upload(c echo.Context) error {
 	tyreModel, err := h.server.Services.TyreModel.Upload(uint(id), dto)
 	switch {
 	case errors.Is(err, services.NotFoundError):
+		log.Errorf("tyre model not found: %v", err)
 		return responses.ErrorResponse(c, http.StatusNotFound, "TyreModel not found")
-	case errors.Is(err, services.InvalidUploadError):
-		return responses.ErrorResponse(c, http.StatusBadRequest, "Invalid image upload for TyreModel")
 	case errors.Is(err, services.AlreadyExistsError):
+		log.Errorf("tyre model image already exists: %v", err)
 		return responses.ErrorResponse(c, http.StatusBadRequest, "TyreModel image already exists")
+	case errors.Is(err, services.InvalidUploadError):
+		log.Errorf("invalid image upload for tyre model: %v", err)
+		return responses.ErrorResponse(c, http.StatusBadRequest, "Invalid image upload for TyreModel")
 	case errors.Is(err, services.FileStoreError):
+		log.Errorf("error saving image to file store: %v", err)
 		return responses.ErrorResponse(c, http.StatusInternalServerError, "Error saving image to file store")
+	case errors.Is(err, services.ProcessingError):
+		log.Errorf("error processing tyre model image: %v", err)
+		return responses.ErrorResponse(c, http.StatusInternalServerError, "Error processing TyreModel image")
 	case err != nil:
+		log.Errorf("error uploading tyre model image: %v", err)
 		return responses.ErrorResponse(c, http.StatusInternalServerError, "Error uploading TyreModel image")
 	}
 
