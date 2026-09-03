@@ -1,4 +1,6 @@
-## v0.2.1 `DATE`
+## v0.2.2 `DATE`
+
+## v0.2.1 03/09/26
 
 ### [Added]
 - Added tyre models to the image processing pipeline
