@@ -48,7 +48,7 @@ func NewEnhancementProcessor() *EnhancementProcessor {
 	enhancementProcessor.ProcessingSteps = []ProcessingStep{
 		enhancementProcessor.Denoise,
 		enhancementProcessor.ApplyCLAHE,
-		enhancementProcessor.Sharpen,
+		//enhancementProcessor.Sharpen,
 	}
 
 	return enhancementProcessor

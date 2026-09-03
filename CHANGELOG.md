@@ -8,6 +8,7 @@
 
 ### [Removed]
 - Removed redundant category, pattern type, and vehicle tpe fields from tyre model
+- Removed sharpening from the enhancement processor, experiments show it was amplifying substrate noise and detrimentally impacting the resulting images
 
 ## v0.2.1 30/08/2026
 
