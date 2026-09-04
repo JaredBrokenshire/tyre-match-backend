@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"image"
-	"image/color"
 	"math"
 
 	m "tyre-match-backend/db/models"
@@ -12,47 +11,30 @@ import (
 	cv "gocv.io/x/gocv"
 )
 
-// NormalisationProcessor removes low-frequency illumination variation from a
-// grayscale image without changing its dimensions or storage depth.
+// NormalisationProcessor crops an input image to the supplied region of
+// interest and removes low-frequency illumination variation from that region.
 //
-// The illumination field is estimated with a large Gaussian blur and the
-// source is corrected multiplicatively:
+// The ROI crop is deliberately performed before illumination correction. The
+// downstream processors therefore receive only the evidence selected by the
+// user, rather than an image containing the original photograph's surrounding
+// background, rulers or other objects.
 //
-//	corrected = source / illumination * reference
-//
-// Processing is performed in CV32F so that division does not introduce the
-// integer rounding that would occur if the source were divided at its native
-// integer depth. The result is converted back to the original image type.
-//
-// This processor deliberately does not resize, threshold, denoise, sharpen or
-// otherwise alter high-frequency tread detail. Those operations belong to
-// later stages of the pipeline.
-//
-// ROI coordinates are absolute pixel values supplied per-impression at
-// processing time. They define the bounding box of the tyre impression
-// within the photograph so that the surrounding background can be blurred
-// without affecting tread detail.
+// Processing is performed in CV32F so that illumination correction does not
+// introduce the integer rounding that would occur if the source were divided
+// at its native integer depth. The result is converted back to the original
+// image type.
 type NormalisationProcessor struct {
 	BaseProcessor
 
-	// ROI coordinates are absolute pixel values for this impression.
+	// ROI coordinates are absolute pixel values in the source image. The right
+	// and bottom coordinates are exclusive, matching image.Rectangle semantics.
 	ROITop    int
 	ROILeft   int
 	ROIRight  int
 	ROIBottom int
 
-	// Everything outside the ROI is blurred with this sigma. A relatively large
-	// sigma suppresses the high-frequency asphalt texture without introducing
-	// high-frequency structure into the downstream enhancement/segmentation
-	// stages.
-	OutsideBlurSigma float64
-
-	// Fraction of the smaller image dimension used as the illumination
-	// estimation scale.
 	IlluminationSigmaFraction float64
-
-	// Minimum Gaussian sigma, in pixels.
-	MinimumIlluminationSigma float64
+	MinimumIlluminationSigma  float64
 }
 
 func NewNormalisationProcessor(roiTop, roiLeft, roiRight, roiBottom int) *NormalisationProcessor {
@@ -67,68 +49,72 @@ func NewNormalisationProcessor(roiTop, roiLeft, roiRight, roiBottom int) *Normal
 		ROIRight:  roiRight,
 		ROIBottom: roiBottom,
 
-		OutsideBlurSigma: 101.0,
-
 		IlluminationSigmaFraction: 0.02,
 		MinimumIlluminationSigma:  25.0,
 	}
 
 	processor.ProcessingSteps = []ProcessingStep{
-		processor.IsolateRegionOfInterest,
+		processor.CropToRegionOfInterest,
 		processor.CorrectIllumination,
 	}
 
 	return processor
 }
 
-func (p *NormalisationProcessor) IsolateRegionOfInterest(source, destination *cv.Mat) error {
+// CropToRegionOfInterest validates the configured ROI and returns a copy of
+// exactly that region. The source image is never mutated.
+func (p *NormalisationProcessor) CropToRegionOfInterest(source, destination *cv.Mat) error {
 	if err := p.ValidateSourceImage(source); err != nil {
-		return fmt.Errorf("isolate roi %v", err)
+		return fmt.Errorf("crop roi %v", err)
 	}
 
-	left := p.ROILeft
-	right := p.ROIRight
-	top := p.ROITop
-	bottom := p.ROIBottom
-
-	roi := image.Rect(left, top, right, bottom)
-
-	// Start with a blurred copy. The original source is then copied over the
-	// ROI, leaving the dimensions and pixels inside the ROI unchanged.
-	background := cv.NewMat()
-	defer background.Close()
-
-	if err := cv.GaussianBlur(
-		*source,
-		&background,
-		image.Pt(0, 0),
-		p.OutsideBlurSigma,
-		p.OutsideBlurSigma,
-		cv.BorderReflect101,
-	); err != nil {
-		return fmt.Errorf("blur background failed: %w", err)
+	roi, err := p.regionOfInterest(source)
+	if err != nil {
+		return err
 	}
 
-	if background.Empty() {
-		return errors.New("blur background produced an empty image")
+	cropped := source.Region(roi)
+	defer cropped.Close()
+
+	if cropped.Empty() {
+		return errors.New("crop roi produced an empty region")
 	}
 
-	mask := cv.NewMatWithSize(source.Rows(), source.Cols(), cv.MatTypeCV8UC1)
-	defer mask.Close()
-
-	// Fill the ROI with 255. The remainder stays zero.
-	cv.Rectangle(&mask, roi, color.RGBA{R: 255, G: 255, B: 255, A: 255}, -1)
-
-	background.CopyTo(destination)
-	if err := source.CopyToWithMask(destination, mask); err != nil {
-		return fmt.Errorf("copy roi over blurred background failed: %w", err)
-	}
-
+	cropped.CopyTo(destination)
 	if destination.Empty() {
-		return errors.New("isolate roi produced an empty image")
+		return errors.New("crop roi produced an empty destination image")
 	}
 
 	return nil
+}
+
+// IsolateRegionOfInterest is retained as the named processing-step entry point
+// used by earlier callers. It now performs a true crop rather than blurring
+// and retaining the original image dimensions.
+func (p *NormalisationProcessor) IsolateRegionOfInterest(source, destination *cv.Mat) error {
+	return p.CropToRegionOfInterest(source, destination)
+}
+
+func (p *NormalisationProcessor) regionOfInterest(source *cv.Mat) (image.Rectangle, error) {
+	if p.ROILeft < 0 || p.ROITop < 0 {
+		return image.Rectangle{}, errors.New("crop roi coordinates cannot be negative")
+	}
+	if p.ROIRight <= p.ROILeft || p.ROIBottom <= p.ROITop {
+		return image.Rectangle{}, errors.New("crop roi must have positive width and height")
+	}
+	if p.ROIRight > source.Cols() || p.ROIBottom > source.Rows() {
+		return image.Rectangle{}, fmt.Errorf(
+			"crop roi %d,%d,%d,%d exceeds source dimensions %dx%d",
+			p.ROILeft,
+			p.ROITop,
+			p.ROIRight,
+			p.ROIBottom,
+			source.Cols(),
+			source.Rows(),
+		)
+	}
+
+	return image.Rect(p.ROILeft, p.ROITop, p.ROIRight, p.ROIBottom), nil
 }
 
 func (p *NormalisationProcessor) CorrectIllumination(source, destination *cv.Mat) error {
@@ -145,25 +131,21 @@ func (p *NormalisationProcessor) CorrectIllumination(source, destination *cv.Mat
 	sourceFloat := cv.NewMat()
 	defer sourceFloat.Close()
 
-	// Increase type precision for division
-	err = source.ConvertTo(&sourceFloat, cv.MatTypeCV32FC1)
-	if err != nil {
+	if err = source.ConvertTo(&sourceFloat, cv.MatTypeCV32FC1); err != nil {
 		return fmt.Errorf("convert source to float failed: %w", err)
 	}
 
 	illumination := cv.NewMat()
 	defer illumination.Close()
 
-	// Estimate illumination
-	err = cv.GaussianBlur(
+	if err = cv.GaussianBlur(
 		sourceFloat,
 		&illumination,
 		image.Pt(0, 0),
 		sigma,
 		sigma,
 		cv.BorderReflect101,
-	)
-	if err != nil {
+	); err != nil {
 		return fmt.Errorf("estimate illumination failed: %w", err)
 	}
 	if illumination.Empty() {
@@ -173,8 +155,7 @@ func (p *NormalisationProcessor) CorrectIllumination(source, destination *cv.Mat
 	corrected := cv.NewMat()
 	defer corrected.Close()
 
-	err = cv.Divide(sourceFloat, illumination, &corrected)
-	if err != nil {
+	if err = cv.Divide(sourceFloat, illumination, &corrected); err != nil {
 		return fmt.Errorf("divide by illumination failed: %w", err)
 	}
 
@@ -188,11 +169,7 @@ func (p *NormalisationProcessor) CorrectIllumination(source, destination *cv.Mat
 		return errors.New("correct illumination produced an empty image")
 	}
 
-	err = corrected.ConvertTo(
-		destination,
-		source.Type(),
-	)
-	if err != nil {
+	if err = corrected.ConvertTo(destination, source.Type()); err != nil {
 		return fmt.Errorf("convert corrected image to source depth failed: %w", err)
 	}
 	if destination.Empty() {

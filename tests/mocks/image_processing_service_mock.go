@@ -1,7 +1,6 @@
 package mocks
 
 import (
-	"fmt"
 	cv "gocv.io/x/gocv"
 	m "tyre-match-backend/db/models"
 )
@@ -32,8 +31,6 @@ func (m *ImageProcessingServiceMock) ProcessTyreImpression(tyreImpression *m.Tyr
 }
 
 func (m *ImageProcessingServiceMock) ProcessTyreModel(tyreModel *m.TyreModel) error {
-
-	fmt.Println(">>> TEST")
 	m.ProcessTyreModelCalls = append(m.ProcessTyreModelCalls, tyreModel)
 	return m.ProcessTyreModelError
 }

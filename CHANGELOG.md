@@ -1,5 +1,11 @@
 ## v0.2.2 `DATE`
 
+### [Added]
+- Added tread mask representation to further define the binary image output
+
+### [Changed]
+- Updated the normalisation processor to crop the input image to the defined ROI coordinates
+
 ## v0.2.1 03/09/26
 
 ### [Added]

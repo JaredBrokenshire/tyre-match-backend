@@ -38,12 +38,17 @@ func NewImageProcessingService(impressionRepo *repositories.TyreImpressionReposi
 }
 
 func (s *ImageProcessingService) ProcessTyreImpression(tyreImpression *m.TyreImpression) error {
+	if tyreImpression == nil {
+		return errors.New("tyre impression is nil")
+	}
 	if len(tyreImpression.Images) == 0 {
 		return fmt.Errorf("tyre impression original image missing")
 	}
 
 	original := tyreImpression.Images[m.FileTypeOriginal]
-
+	if original == nil {
+		return errors.New("tyre impression original image missing")
+	}
 	grayscaleImage, err := s.readGrayscale(original)
 	if err != nil {
 		return err
@@ -53,29 +58,50 @@ func (s *ImageProcessingService) ProcessTyreImpression(tyreImpression *m.TyreImp
 	pipeline := []processors.Processor{
 		processors.NewNormalisationProcessor(tyreImpression.ROITop, tyreImpression.ROILeft, tyreImpression.ROIRight, tyreImpression.ROIBottom),
 		processors.NewEnhancementProcessor(),
-		processors.NewBinaryProcessor(),
 	}
 
-	err = s.runPipeline(pipeline, tyreImpression.ID, m.FileModelTyreImpression, grayscaleImage)
+	enhanced, err := s.runPipeline(pipeline, tyreImpression.ID, m.FileModelTyreImpression, grayscaleImage)
 	if err != nil {
 		return err
 	}
+	defer enhanced.Close()
 
-	tyreImpression.Status = m.ProcessingStatusProcessed
+	treadMask, err := s.runBinaryStages(
+		enhanced,
+		tyreImpression.ID,
+		m.FileModelTyreImpression,
+		tyreImpression.PixelsPerInch,
+	)
+	if err != nil {
+		return err
+	}
+	defer treadMask.Close()
+
+	//if err := s.extractImpressionFeaturesAndMatches(tyreImpression, treadMask); err != nil {
+	//	return err
+	//}
+
+	if tyreImpression.Status != m.ProcessingStatusMatched {
+		tyreImpression.Status = m.ProcessingStatusProcessed
+	}
 	if err := s.TyreImpressionRepo.Update(tyreImpression); err != nil {
 		return ProcessingError
 	}
-
 	return nil
 }
 
 func (s *ImageProcessingService) ProcessTyreModel(tyreModel *m.TyreModel) error {
+	if tyreModel == nil {
+		return errors.New("tyre model is nil")
+	}
 	if len(tyreModel.Images) == 0 {
-		return fmt.Errorf("tyre impression original image missing")
+		return fmt.Errorf("tyre model original image missing")
 	}
 
 	original := tyreModel.Images[m.FileTypeOriginal]
-
+	if original == nil {
+		return errors.New("tyre model original image missing")
+	}
 	grayscaleImage, err := s.readGrayscale(original)
 	if err != nil {
 		return err
@@ -85,19 +111,144 @@ func (s *ImageProcessingService) ProcessTyreModel(tyreModel *m.TyreModel) error 
 	pipeline := []processors.Processor{
 		processors.NewNormalisationProcessor(tyreModel.ROITop, tyreModel.ROILeft, tyreModel.ROIRight, tyreModel.ROIBottom),
 		processors.NewEnhancementProcessor(),
-		processors.NewBinaryProcessor(),
 	}
 
-	err = s.runPipeline(pipeline, tyreModel.ID, m.FileModelTyreModel, grayscaleImage)
+	enhanced, err := s.runPipeline(pipeline, tyreModel.ID, m.FileModelTyreModel, grayscaleImage)
 	if err != nil {
 		return err
 	}
+	defer enhanced.Close()
+
+	treadMask, err := s.runBinaryStages(
+		enhanced,
+		tyreModel.ID,
+		m.FileModelTyreModel,
+		tyreModel.PixelsPerInch,
+	)
+	if err != nil {
+		return err
+	}
+	defer treadMask.Close()
+
+	if s.FeatureRepo == nil {
+		return fmt.Errorf("tyre model feature repository is not configured")
+	}
+	if s.FeatureExtractor == nil {
+		return fmt.Errorf("tyre model feature extractor is not configured")
+	}
+
+	//fingerprint, err := s.FeatureExtractor.ExtractWithContext(treadMask, fe.ExtractionContext{
+	//	ROITop:        0,
+	//	ROILeft:       0,
+	//	ROIRight:      treadMask.Cols(),
+	//	ROIBottom:     treadMask.Rows(),
+	//	PixelsPerInch: tyreModel.PixelsPerInch,
+	//})
+	//if err != nil {
+	//	return fmt.Errorf("extract tyre model features: %w", err)
+	//}
+	//encoded, err := fe.Encode(fingerprint)
+	//if err != nil {
+	//	return fmt.Errorf("encode tyre model features: %w", err)
+	//}
+	//if err := s.FeatureRepo.Upsert(&m.TyreModelFeature{
+	//	TyreModelID: tyreModel.ID,
+	//	FeatureJSON: encoded,
+	//}); err != nil {
+	//	return fmt.Errorf("store tyre model features: %w", err)
+	//}
 
 	tyreModel.Status = m.ProcessingStatusProcessed
 	if err := s.TyreModelRepo.Update(tyreModel); err != nil {
 		return ProcessingError
 	}
+	return nil
+}
 
+type TyreMatch struct {
+	Rank                     int     `json:"rank"`
+	TyreModelID              uint    `json:"tyre_model_id"`
+	Manufacturer             string  `json:"manufacturer"`
+	ModelName                string  `json:"model_name"`
+	Similarity               float32 `json:"similarity"`
+	Distance                 float32 `json:"distance"`
+	PatternSimilarity        float32 `json:"pattern_similarity"`
+	LongitudinalSimilarity   float32 `json:"longitudinal_similarity"`
+	StructureCountSimilarity float32 `json:"structure_count_similarity"`
+	ScaleCompatibility       float32 `json:"scale_compatibility"`
+}
+
+func (s *ImageProcessingService) extractImpressionFeaturesAndMatches(impression *m.TyreImpression, treadMask *cv.Mat) error {
+	if s.FeatureRepo == nil {
+		return fmt.Errorf("tyre model feature repository is not configured")
+	}
+	if s.FeatureExtractor == nil {
+		return fmt.Errorf("tyre model feature extractor is not configured")
+	}
+	fingerprint, err := s.FeatureExtractor.ExtractWithContext(treadMask, fe.ExtractionContext{
+		ROITop:        0,
+		ROILeft:       0,
+		ROIRight:      treadMask.Cols(),
+		ROIBottom:     treadMask.Rows(),
+		PixelsPerInch: impression.PixelsPerInch,
+	})
+	if err != nil {
+		return fmt.Errorf("extract tyre impression features: %w", err)
+	}
+	encoded, err := fe.Encode(fingerprint)
+	if err != nil {
+		return fmt.Errorf("encode tyre impression features: %w", err)
+	}
+	impression.FeatureJSON = encoded
+
+	modelFeatures := s.FeatureRepo.List()
+	models := s.TyreModelRepo.ListAll()
+	modelByID := make(map[uint]*m.TyreModel, len(models))
+	for _, model := range models {
+		modelByID[model.ID] = model
+	}
+	matches := make([]TyreMatch, 0, len(modelFeatures))
+	for _, stored := range modelFeatures {
+		model := modelByID[stored.TyreModelID]
+		if model == nil {
+			continue
+		}
+		modelFingerprint, err := fe.Decode(stored.FeatureJSON)
+		if err != nil {
+			return fmt.Errorf("decode stored features for tyre model %d: %w", stored.TyreModelID, err)
+		}
+		score := s.FeatureExtractor.Compare(fingerprint, modelFingerprint)
+		matches = append(matches, TyreMatch{
+			TyreModelID:              stored.TyreModelID,
+			Manufacturer:             model.Manufacturer,
+			ModelName:                model.ModelName,
+			Similarity:               score.Final,
+			Distance:                 1 - score.Final,
+			PatternSimilarity:        score.Pattern,
+			LongitudinalSimilarity:   score.Longitudinal,
+			StructureCountSimilarity: score.StructureCount,
+			ScaleCompatibility:       score.Scale,
+		})
+	}
+
+	sort.SliceStable(matches, func(i, j int) bool {
+		if matches[i].Similarity == matches[j].Similarity {
+			return matches[i].TyreModelID < matches[j].TyreModelID
+		}
+		return matches[i].Similarity > matches[j].Similarity
+	})
+	for i := range matches {
+		matches[i].Rank = i + 1
+	}
+
+	matchesJSON, err := json.Marshal(matches)
+	if err != nil {
+		return fmt.Errorf("encode tyre impression matches: %w", err)
+	}
+	impression.MatchesJSON = string(matchesJSON)
+	if len(matches) > 0 {
+		impression.Status = m.ProcessingStatusMatched
+	}
 	return nil
 }
 
@@ -155,6 +306,9 @@ func (s *ImageProcessingService) SaveStage(id uint, model, fileType string, imag
 }
 
 func (s *ImageProcessingService) readGrayscale(original *m.File) (*cv.Mat, error) {
+	if original == nil {
+		return nil, errors.New("original image file is nil")
+	}
 	imagePath := filepath.Join(s.FileStore.GetStorageLocation(), original.Location, original.Name)
 	grayscaleImage := cv.IMRead(imagePath, cv.IMReadGrayScale)
 	if grayscaleImage.Empty() {
@@ -164,26 +318,56 @@ func (s *ImageProcessingService) readGrayscale(original *m.File) (*cv.Mat, error
 	return &grayscaleImage, nil
 }
 
-func (s *ImageProcessingService) runPipeline(pipeline []processors.Processor, id uint, model string, image *cv.Mat) error {
+func (s *ImageProcessingService) runBinaryStages(source *cv.Mat, id uint, model string, pixelsPerInch float32) (*cv.Mat, error) {
+	if source == nil || source.Empty() {
+		return nil, fmt.Errorf("binary stage source image is empty")
+	}
+
+	processor := processors.NewBinaryProcessor(pixelsPerInch)
+	binary := cv.NewMat()
+	if err := processor.Segment(source, &binary); err != nil {
+		binary.Close()
+		return nil, fmt.Errorf("%s stage: %v", processor.GetName(), err)
+	}
+
+	if err := s.SaveStage(id, model, processor.GetFileType(), &binary); err != nil {
+		binary.Close()
+		return nil, err
+	}
+	binary.Close()
+
+	treadMask := cv.NewMat()
+	if err := processor.SegmentTreadMask(source, &treadMask); err != nil {
+		treadMask.Close()
+		return nil, fmt.Errorf("%s tread mask stage: %v", processor.GetName(), err)
+	}
+
+	if err := s.SaveStage(id, model, m.FileTypeTreadMask, &treadMask); err != nil {
+		treadMask.Close()
+		return nil, err
+	}
+
+	return &treadMask, nil
+}
+
+func (s *ImageProcessingService) runPipeline(pipeline []processors.Processor, id uint, model string, image *cv.Mat) (*cv.Mat, error) {
 	currentImage := image
 	for _, processor := range pipeline {
 		result, err := processor.Process(currentImage)
 		if err != nil {
-			return fmt.Errorf("%s stage: %v", processor.GetName(), err)
+			return nil, fmt.Errorf("%s stage: %v", processor.GetName(), err)
 		}
-		defer result.Close()
 
 		if err := s.SaveStage(id, model, processor.GetFileType(), result); err != nil {
-			return err
+			result.Close()
+			return nil, err
 		}
 
-		// The result becomes the input for the next processor.
 		if currentImage != image {
 			currentImage.Close()
 		}
-
 		currentImage = result
 	}
 
-	return nil
+	return currentImage, nil
 }

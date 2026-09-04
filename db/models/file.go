@@ -12,6 +12,7 @@ const (
 	FileTypeNormalised = "normalised"
 	FileTypeEnhanced   = "enhanced"
 	FileTypeBinary     = "binary"
+	FileTypeTreadMask  = "tread_mask"
 )
 
 type File struct {

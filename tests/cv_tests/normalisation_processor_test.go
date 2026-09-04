@@ -15,15 +15,13 @@ func TestNormalisationProcessorIsolateROI(t *testing.T) {
 	source := cv.NewMatWithSize(301, 401, cv.MatTypeCV8UC1)
 	defer source.Close()
 
-	// High-frequency background noise.
 	for y := 0; y < source.Rows(); y++ {
 		for x := 0; x < source.Cols(); x++ {
-			value := uint8((x*17 + y*31) % 256)
-			source.SetUCharAt(y, x, value)
+			source.SetUCharAt(y, x, uint8((x*17+y*31)%256))
 		}
 	}
 
-	// A simple tread-like structure inside the ROI.
+	// The selected ROI contains a deterministic tread-like pattern.
 	for y := 100; y < 250; y++ {
 		for x := 80; x < 320; x++ {
 			if ((x / 10) % 2) == 0 {
@@ -41,12 +39,86 @@ func TestNormalisationProcessorIsolateROI(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, result.Empty())
 
-	// Pixels comfortably inside the configured ROI must be preserved.
-	assert.Equal(t, source.GetUCharAt(150, 200), result.GetUCharAt(150, 200))
+	// A cropped ROI must have dimensions equal to right-left and bottom-top.
+	assert.Equal(t, 170, result.Rows())
+	assert.Equal(t, 300, result.Cols())
+	assert.Equal(t, cv.MatTypeCV8UC1, result.Type())
 
-	// A pixel outside the ROI should no longer retain the original
-	// high-frequency value exactly.
-	assert.NotEqual(t, source.GetUCharAt(40, 40), result.GetUCharAt(40, 40))
+	// The first and last pixels of the cropped result correspond exactly to the
+	// source pixels at the ROI's top-left and bottom-right coordinates.
+	assert.Equal(t, source.GetUCharAt(90, 70), result.GetUCharAt(0, 0))
+	assert.Equal(t, source.GetUCharAt(259, 369), result.GetUCharAt(169, 299))
+
+	// Cropping must not mutate the source image.
+	assert.Equal(t, uint8((40*17+40*31)%256), source.GetUCharAt(40, 40))
+}
+
+func TestNormalisationProcessorCropToRegionOfInterestValidation(t *testing.T) {
+	source := helpers.SolidGray(100, 80)
+	defer source.Close()
+
+	cases := []struct {
+		Name          string
+		Processor     *processors.NormalisationProcessor
+		ExpectedError string
+	}{
+		{
+			Name:          "Rejects negative left coordinate",
+			Processor:     processors.NewNormalisationProcessor(10, -1, 50, 60),
+			ExpectedError: "crop roi coordinates cannot be negative",
+		},
+		{
+			Name:          "Rejects negative top coordinate",
+			Processor:     processors.NewNormalisationProcessor(-1, 10, 50, 60),
+			ExpectedError: "crop roi coordinates cannot be negative",
+		},
+		{
+			Name:          "Rejects zero width",
+			Processor:     processors.NewNormalisationProcessor(10, 50, 50, 60),
+			ExpectedError: "crop roi must have positive width and height",
+		},
+		{
+			Name:          "Rejects zero height",
+			Processor:     processors.NewNormalisationProcessor(60, 10, 50, 60),
+			ExpectedError: "crop roi must have positive width and height",
+		},
+		{
+			Name:          "Rejects ROI beyond source width",
+			Processor:     processors.NewNormalisationProcessor(10, 10, 101, 60),
+			ExpectedError: "crop roi 10,10,101,60 exceeds source dimensions 100x80",
+		},
+		{
+			Name:          "Rejects ROI beyond source height",
+			Processor:     processors.NewNormalisationProcessor(10, 10, 50, 81),
+			ExpectedError: "crop roi 10,10,50,81 exceeds source dimensions 100x80",
+		},
+	}
+
+	for _, test := range cases {
+		t.Run(test.Name, func(t *testing.T) {
+			result := cv.NewMat()
+			defer result.Close()
+
+			err := test.Processor.CropToRegionOfInterest(source, &result)
+			assert.EqualError(t, err, test.ExpectedError)
+			assert.True(t, result.Empty())
+		})
+	}
+}
+
+func TestNormalisationProcessorProcessReturnsCroppedAndNormalisedImage(t *testing.T) {
+	processor := processors.NewNormalisationProcessor(20, 30, 180, 120)
+	source := multiplicativelyIlluminatedImage8(220, 160)
+	defer source.Close()
+
+	result, err := processor.Process(source)
+	assert.NoError(t, err)
+	defer result.Close()
+
+	assert.Equal(t, 100, result.Rows())
+	assert.Equal(t, 150, result.Cols())
+	assert.Equal(t, cv.MatTypeCV8UC1, result.Type())
+	assert.NotEmpty(t, result.ToBytes())
 }
 
 func TestNormalisationProcessorCorrectIllumination(t *testing.T) {

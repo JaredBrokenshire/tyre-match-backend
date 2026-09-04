@@ -281,3 +281,179 @@ func assertRegionForegroundRatio(
 		"foreground ratio is above expected maximum",
 	)
 }
+
+func TestBinaryProcessorSegmentTreadMaskUsesOtsuThresholding(t *testing.T) {
+	processor := processors.NewBinaryProcessor()
+	// These values must not influence the new tread-mask segmentation. They
+	// belong to the legacy adaptive binary representation.
+	processor.AdaptiveBlockSize = 3
+	processor.AdaptiveC = 999
+
+	source := brightTreadOnDarkGroovesImage(201, 201)
+	defer source.Close()
+
+	result := cv.NewMat()
+	defer result.Close()
+
+	err := processor.SegmentTreadMask(source, &result)
+	assert.NoError(t, err)
+	assertSegmentationResult(t, source, &result)
+
+	assert.Equal(t, uint8(255), result.GetUCharAt(100, 30), "bright tread should be foreground")
+	assert.Equal(t, uint8(0), result.GetUCharAt(100, 62), "dark groove should be background")
+}
+
+func TestBinaryProcessorSegmentTreadMaskUsesTreadForegroundPolarity(t *testing.T) {
+	processor := processors.NewBinaryProcessor()
+
+	source := brightTreadOnDarkGroovesImage(201, 201)
+	defer source.Close()
+
+	result := cv.NewMat()
+	defer result.Close()
+
+	err := processor.SegmentTreadMask(source, &result)
+	assert.NoError(t, err)
+	assertSegmentationResult(t, source, &result)
+
+	// The centre of a bright tread block must be foreground in the new mask.
+	assert.Equal(t, uint8(255), result.GetUCharAt(100, 100))
+
+	// The dark groove between blocks must remain background.
+	assert.Equal(t, uint8(0), result.GetUCharAt(100, 62))
+}
+
+func TestBinaryProcessorSegmentRetainsExistingInvertedRepresentation(t *testing.T) {
+	processor := processors.NewBinaryProcessor()
+	processor.AdaptiveBlockSize = 21
+	processor.AdaptiveC = 1
+
+	source := brightTreadOnDarkGroovesImage(201, 201)
+	defer source.Close()
+
+	result := cv.NewMat()
+	defer result.Close()
+
+	err := processor.Segment(source, &result)
+	assert.NoError(t, err)
+	assertSegmentationResult(t, source, &result)
+
+	// The existing binary intentionally has the opposite polarity: dark groove
+	// structure is foreground while the bright tread block is background.
+	assert.Equal(t, uint8(0), result.GetUCharAt(100, 100))
+	assert.Equal(t, uint8(255), result.GetUCharAt(100, 62))
+}
+
+func TestBinaryProcessorSegmentTreadMaskClosesSmallSegmentationBreaks(t *testing.T) {
+	processor := processors.NewBinaryProcessor(254)
+	processor.TreadClosingMillimetres = 0.30
+
+	source := brightTreadBlockWithSmallDarkBreak(201, 201)
+	defer source.Close()
+
+	result := cv.NewMat()
+	defer result.Close()
+
+	err := processor.SegmentTreadMask(source, &result)
+	assert.NoError(t, err)
+	assertSegmentationResult(t, source, &result)
+
+	// At 254 PPI, the configured 0.30 mm closing scale produces a small
+	// odd-sized kernel. A one-pixel segmentation break inside the tread block
+	// should therefore be repaired without changing the binary convention.
+	assert.Equal(t, uint8(255), result.GetUCharAt(100, 100))
+}
+
+func TestBinaryProcessorSegmentTreadMaskDoesNotCloseWhenPPIUnavailable(t *testing.T) {
+	processor := processors.NewBinaryProcessor()
+	processor.TreadClosingMillimetres = 0.30
+
+	source := brightTreadBlockWithSmallDarkBreak(201, 201)
+	defer source.Close()
+
+	result := cv.NewMat()
+	defer result.Close()
+
+	err := processor.SegmentTreadMask(source, &result)
+	assert.NoError(t, err)
+	assertSegmentationResult(t, source, &result)
+	assert.Equal(t, uint8(0), result.GetUCharAt(100, 100), "without PPI-aware closing, the synthetic break should remain")
+}
+
+func TestBinaryProcessorRejectsInvalidAdaptiveBlockSize(t *testing.T) {
+	cases := []struct {
+		Name string
+		Size int
+	}{
+		{Name: "Rejects even block size", Size: 20},
+		{Name: "Rejects block size below three", Size: 1},
+	}
+
+	for _, test := range cases {
+		t.Run(test.Name, func(t *testing.T) {
+			processor := processors.NewBinaryProcessor()
+			processor.AdaptiveBlockSize = test.Size
+
+			source := brightTreadOnDarkGroovesImage(101, 101)
+			defer source.Close()
+
+			result := cv.NewMat()
+			defer result.Close()
+
+			err := processor.Segment(source, &result)
+			assert.EqualError(t, err, "segment adaptive block size must be an odd integer greater than or equal to 3")
+			assert.True(t, result.Empty())
+		})
+	}
+}
+
+func brightTreadOnDarkGroovesImage(width, height int) *cv.Mat {
+	mat := cv.NewMatWithSize(height, width, cv.MatTypeCV8UC1)
+	mat.SetTo(cv.NewScalar(40, 40, 40, 0))
+
+	// Bright rectangular tread blocks separated by narrow dark grooves.
+	// The grooves are deliberately narrower than the adaptive-threshold
+	// neighbourhood so that the legacy inverted representation can classify
+	// them as foreground reliably.
+	for y := 20; y < height-20; y++ {
+		for x := 20; x < width-20; x++ {
+			if ((x - 20) % 45) < 40 {
+				mat.SetUCharAt(y, x, 210)
+			}
+		}
+	}
+
+	return &mat
+}
+
+func brightTreadBlockWithSmallDarkBreak(width, height int) *cv.Mat {
+	mat := cv.NewMatWithSize(height, width, cv.MatTypeCV8UC1)
+	mat.SetTo(cv.NewScalar(40, 40, 40, 0))
+
+	// One broad bright tread block.
+	region := mat.Region(image.Rect(30, 30, width-30, height-30))
+	region.SetTo(cv.NewScalar(210, 210, 210, 0))
+	region.Close()
+
+	// A one-pixel dark segmentation break at the centre.
+	mat.SetUCharAt(height/2, width/2, 40)
+
+	return &mat
+}
+
+func TestBinaryProcessorProcessReturnsExistingBinaryRepresentation(t *testing.T) {
+	processor := processors.NewBinaryProcessor()
+	processor.AdaptiveBlockSize = 21
+	processor.AdaptiveC = 1
+
+	source := brightTreadOnDarkGroovesImage(201, 201)
+	defer source.Close()
+
+	result, err := processor.Process(source)
+	assert.NoError(t, err)
+	defer result.Close()
+
+	assertSegmentationResult(t, source, result)
+	assert.Equal(t, uint8(0), result.GetUCharAt(100, 100))
+	assert.Equal(t, uint8(255), result.GetUCharAt(100, 62))
+}
