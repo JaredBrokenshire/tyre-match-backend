@@ -25,7 +25,8 @@ type TyreModelResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 
-	Images map[string]FileResponse `json:"images"`
+	Images   map[string]FileResponse  `json:"images"`
+	Features TyreModelFeatureResponse `json:"features"`
 }
 
 type SlimTyreModelResponse struct {
@@ -60,6 +61,10 @@ func NewTyreModelResponse(tyreModel *m.TyreModel) *TyreModelResponse {
 		ROIBottom:         tyreModel.ROIBottom,
 		CreatedAt:         tyreModel.CreatedAt,
 		UpdatedAt:         tyreModel.UpdatedAt,
+	}
+
+	if tyreModel.Features != nil {
+		res.Features = *NewTyreModelFeatureResponse(tyreModel.Features)
 	}
 
 	res.Images = make(map[string]FileResponse)

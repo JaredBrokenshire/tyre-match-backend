@@ -24,5 +24,6 @@ type TyreModel struct {
 	CreatedAt time.Time `json:"created_at" gorm:"not null;default:CURRENT_TIMESTAMP"`
 	UpdatedAt time.Time `json:"updated_at" gorm:"not null;default:CURRENT_TIMESTAMP"`
 
-	Images map[string]*File `json:"images" gorm:"-"`
+	Images   map[string]*File  `json:"images" gorm:"-"`
+	Features *TyreModelFeature `json:"features" gorm:"-"`
 }

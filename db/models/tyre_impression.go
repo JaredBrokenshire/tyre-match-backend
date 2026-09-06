@@ -18,6 +18,9 @@ type TyreImpression struct {
 	VoidRatio   float32 `json:"void_ratio"`
 	GrooveCount int     `json:"groove_count"`
 
+	FeatureJSON string `json:"-" gorm:"type:longtext"`
+	MatchesJSON string `json:"-" gorm:"type:longtext"`
+
 	Images map[string]*File `json:"images" gorm:"-"`
 
 	CreatedAt time.Time `json:"created_at" gorm:"not null;default:CURRENT_TIMESTAMP"`

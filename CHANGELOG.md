@@ -2,9 +2,11 @@
 
 ### [Added]
 - Added tread mask representation to further define the binary image output
+- Added feature extraction and similarity scoring along
 
 ### [Changed]
 - Updated the normalisation processor to crop the input image to the defined ROI coordinates
+- Updated TyreModel and TyreImpression response objects to include new extracted features and matches JSON blobs.
 
 ## v0.2.1 03/09/26
 

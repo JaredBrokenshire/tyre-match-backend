@@ -13,7 +13,8 @@ type TyreImpressionResponse struct {
 	VoidRatio     float32 `json:"void_ratio"`
 	GrooveCount   int     `json:"groove_count"`
 
-	Images map[string]FileResponse `json:"images"`
+	Images      map[string]FileResponse `json:"images"`
+	MatchesJSON string                  `json:"matches"`
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -41,6 +42,8 @@ func NewTyreImpressionResponse(tyreImpression *m.TyreImpression) *TyreImpression
 		EdgeDensity:   tyreImpression.EdgeDensity,
 		VoidRatio:     tyreImpression.VoidRatio,
 		GrooveCount:   tyreImpression.GrooveCount,
+		
+		MatchesJSON: tyreImpression.MatchesJSON,
 
 		CreatedAt: tyreImpression.CreatedAt,
 		UpdatedAt: tyreImpression.UpdatedAt,

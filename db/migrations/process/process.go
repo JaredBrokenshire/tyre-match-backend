@@ -21,5 +21,7 @@ func getMigrationsList() []store.Migratable {
 		&list.UpdateTyreModelsAddStatus{},
 		&list.UpdateTyreModelsAddROIAndPPI{},
 		&list.UpdateFilesFileTypeAddTreadMask{},
+		&list.CreateTyreModelFeaturesTable{},
+		&list.UpdateTyreImpressionsAddFeatures{},
 	}
 }

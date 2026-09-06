@@ -1,12 +1,16 @@
 package services
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
+	"path/filepath"
+	"sort"
+
 	"github.com/labstack/gommon/random"
 	cv "gocv.io/x/gocv"
-	_ "golang.org/x/image/webp"
-	_ "image/jpeg"
-	"path/filepath"
+
+	fe "tyre-match-backend/cv/feature_extraction"
 	"tyre-match-backend/cv/processors"
 	m "tyre-match-backend/db/models"
 	"tyre-match-backend/db/repositories"
@@ -24,16 +28,37 @@ type ImageProcessingService struct {
 	TyreModelRepo      *repositories.TyreModelRepository
 	*FileService
 	*repositories.FileRepository
-	FileStore file_storage.Store
+	FileStore        file_storage.Store
+	FeatureRepo      *repositories.TyreModelFeatureRepository
+	FeatureExtractor *fe.Extractor
 }
 
-func NewImageProcessingService(impressionRepo *repositories.TyreImpressionRepository, modelRepo *repositories.TyreModelRepository, fileService *FileService, fileRepo *repositories.FileRepository, fileStore file_storage.Store) *ImageProcessingService {
+// NewImageProcessingService keeps the existing constructor compatible while
+// allowing a feature repository to be injected by tests or callers that want
+// to provide one explicitly.
+func NewImageProcessingService(
+	impressionRepo *repositories.TyreImpressionRepository,
+	modelRepo *repositories.TyreModelRepository,
+	fileService *FileService,
+	fileRepo *repositories.FileRepository,
+	fileStore file_storage.Store,
+	featureRepos ...*repositories.TyreModelFeatureRepository,
+) *ImageProcessingService {
+	var featureRepo *repositories.TyreModelFeatureRepository
+	if len(featureRepos) > 0 && featureRepos[0] != nil {
+		featureRepo = featureRepos[0]
+	} else if modelRepo != nil && modelRepo.Repository != nil {
+		featureRepo = repositories.NewTyreModelFeatureRepository(modelRepo.Db)
+	}
+
 	return &ImageProcessingService{
 		TyreImpressionRepo: impressionRepo,
 		TyreModelRepo:      modelRepo,
 		FileService:        fileService,
 		FileRepository:     fileRepo,
 		FileStore:          fileStore,
+		FeatureRepo:        featureRepo,
+		FeatureExtractor:   fe.NewExtractor(),
 	}
 }
 
@@ -77,9 +102,9 @@ func (s *ImageProcessingService) ProcessTyreImpression(tyreImpression *m.TyreImp
 	}
 	defer treadMask.Close()
 
-	//if err := s.extractImpressionFeaturesAndMatches(tyreImpression, treadMask); err != nil {
-	//	return err
-	//}
+	if err := s.extractImpressionFeaturesAndMatches(tyreImpression, treadMask); err != nil {
+		return err
+	}
 
 	if tyreImpression.Status != m.ProcessingStatusMatched {
 		tyreImpression.Status = m.ProcessingStatusProcessed
@@ -137,26 +162,20 @@ func (s *ImageProcessingService) ProcessTyreModel(tyreModel *m.TyreModel) error 
 		return fmt.Errorf("tyre model feature extractor is not configured")
 	}
 
-	//fingerprint, err := s.FeatureExtractor.ExtractWithContext(treadMask, fe.ExtractionContext{
-	//	ROITop:        0,
-	//	ROILeft:       0,
-	//	ROIRight:      treadMask.Cols(),
-	//	ROIBottom:     treadMask.Rows(),
-	//	PixelsPerInch: tyreModel.PixelsPerInch,
-	//})
-	//if err != nil {
-	//	return fmt.Errorf("extract tyre model features: %w", err)
-	//}
-	//encoded, err := fe.Encode(fingerprint)
-	//if err != nil {
-	//	return fmt.Errorf("encode tyre model features: %w", err)
-	//}
-	//if err := s.FeatureRepo.Upsert(&m.TyreModelFeature{
-	//	TyreModelID: tyreModel.ID,
-	//	FeatureJSON: encoded,
-	//}); err != nil {
-	//	return fmt.Errorf("store tyre model features: %w", err)
-	//}
+	fingerprint, err := s.FeatureExtractor.Extract(treadMask, tyreModel.PixelsPerInch)
+	if err != nil {
+		return fmt.Errorf("extract tyre model features: %w", err)
+	}
+	encoded, err := fe.Encode(fingerprint)
+	if err != nil {
+		return fmt.Errorf("encode tyre model features: %w", err)
+	}
+	if err := s.FeatureRepo.Upsert(&m.TyreModelFeature{
+		TyreModelID: tyreModel.ID,
+		FeatureJSON: encoded,
+	}); err != nil {
+		return fmt.Errorf("store tyre model features: %w", err)
+	}
 
 	tyreModel.Status = m.ProcessingStatusProcessed
 	if err := s.TyreModelRepo.Update(tyreModel); err != nil {
@@ -185,13 +204,8 @@ func (s *ImageProcessingService) extractImpressionFeaturesAndMatches(impression 
 	if s.FeatureExtractor == nil {
 		return fmt.Errorf("tyre model feature extractor is not configured")
 	}
-	fingerprint, err := s.FeatureExtractor.ExtractWithContext(treadMask, fe.ExtractionContext{
-		ROITop:        0,
-		ROILeft:       0,
-		ROIRight:      treadMask.Cols(),
-		ROIBottom:     treadMask.Rows(),
-		PixelsPerInch: impression.PixelsPerInch,
-	})
+
+	fingerprint, err := s.FeatureExtractor.Extract(treadMask, impression.PixelsPerInch)
 	if err != nil {
 		return fmt.Errorf("extract tyre impression features: %w", err)
 	}
@@ -207,6 +221,7 @@ func (s *ImageProcessingService) extractImpressionFeaturesAndMatches(impression 
 	for _, model := range models {
 		modelByID[model.ID] = model
 	}
+
 	matches := make([]TyreMatch, 0, len(modelFeatures))
 	for _, stored := range modelFeatures {
 		model := modelByID[stored.TyreModelID]

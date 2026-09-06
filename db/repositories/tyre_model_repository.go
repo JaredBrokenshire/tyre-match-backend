@@ -39,12 +39,23 @@ func (r *TyreModelRepository) List(page, pageSize int, scopes []func(db *gorm.DB
 	return tyreModels, int(count), page, pageSize
 }
 
+func (r *TyreModelRepository) ListAll() []*m.TyreModel {
+	var tyreModels []*m.TyreModel
+	r.Db.Order("id ASC").Find(&tyreModels)
+	return tyreModels
+}
+
 func (r *TyreModelRepository) GetByID(id uint) *m.TyreModel {
 	var tyreModel m.TyreModel
 	r.Db.Where("id = ?", id).First(&tyreModel)
 	if tyreModel.ID == 0 {
 		return nil
 	}
+
+	var features m.TyreModelFeature
+	r.Db.Where("tyre_model_id = ?", tyreModel.ID).First(&features)
+
+	tyreModel.Features = &features
 
 	tyreModel.Images = make(map[string]*m.File)
 
